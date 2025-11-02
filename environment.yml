@@ -1,0 +1,29 @@
+name: geo311
+channels:
+  - conda-forge
+channel_priority: strict
+dependencies:
+  - python=3.11
+  - geopandas
+  - shapely
+  - fiona
+  - rasterio
+  - rioxarray
+  - xarray
+  - duckdb
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - folium
+  - pyyaml
+  - pytest
+  - ruff
+  - cdsapi
+  - pyogrio
+  - netcdf4
+  - pyproj
+  - gdal
+  - dask
+  - pyarrow
+  - scikit-learn

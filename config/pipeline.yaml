@@ -1,0 +1,40 @@
+# WildfireRisk-EU — Core Pipeline Configuration
+# Edit this file to change AOI, CRS, paths, and run settings.
+# All paths are relative to the project root.
+
+project:
+  name: WildfireRisk-EU
+  version: "2.1.0"
+  description: "Asset-level wildfire exposure intelligence for Mediterranean WUI"
+
+# ── Area of Interest ───────────────────────────────────────────────────────────
+aoi:
+  name: Attica Region, Greece
+  # Bounding box: [west, south, east, north] in WGS84
+  bbox: [23.4, 37.6, 24.2, 38.3]
+  crs_working: "EPSG:2100"   # Greek Grid (GGRS87), units: meters
+  crs_output: "EPSG:4326"    # WGS84, for web maps and CSV export
+
+# ── File Paths ─────────────────────────────────────────────────────────────────
+paths:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  data_sample: "data/sample"
+  db: "data/wildfire_risk.duckdb"
+  outputs: "outputs"
+
+# ── Run Settings ───────────────────────────────────────────────────────────────
+run:
+  # Historical window for feature computation (fire history, FWI stats)
+  date_start: "2015-01-01"
+  date_end:   "2024-12-31"
+  # Fire season months (inclusive)
+  fire_season_start: 6   # June
+  fire_season_end:   10  # October
+  # Minimum building count; pipeline aborts and triggers fallback if below
+  min_buildings: 5000
+
+# ── Quality Control Thresholds ─────────────────────────────────────────────────
+qc:
+  max_null_fraction: 0.05    # Flag if >5% nulls in any feature column
+  min_geometry_validity: 0.99 # Flag if <99% of geometries are valid

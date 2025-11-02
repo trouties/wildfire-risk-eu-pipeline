@@ -1,0 +1,60 @@
+# Data directories — never commit raw/processed data
+data/raw/
+data/processed/
+
+# DuckDB database files
+*.duckdb
+*.duckdb.wal
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Outputs — large generated data excluded; reports/summaries tracked for portfolio
+outputs/tables/
+outputs/maps/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Secrets / credentials — never commit
+.env
+*.pem
+*.key
+secrets/
+
+# Ruff / pytest cache
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+
+# Keep placeholders
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/sample/.gitkeep
+!outputs/tables/.gitkeep
+!outputs/maps/.gitkeep
+!outputs/reports/.gitkeep
+!outputs/summaries/.gitkeep
