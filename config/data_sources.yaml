@@ -1,0 +1,155 @@
+# WildfireRisk-EU — Data Source Configuration
+# Defines download parameters, expected formats, and fallback strategies
+# per data category.
+
+# ── Buildings ─────────────────────────────────────────────────────────────────
+buildings:
+  primary:
+    name: OSM via Overpass API
+    api_url: "https://overpass-api.de/api/interpreter"
+    api_fallback_url: "https://overpass.kumi.systems/api/interpreter"
+    output_file: "data/raw/buildings_osm_attica.gpkg"
+    expected_min_count: 5000
+    query_timeout_s: 300
+    # Download scope: WUI-focused geographic chunks.
+    # Full Attica AOI bbox contains ~413k buildings (verified 2026-04-04 via count query).
+    # Dense urban central Athens (~330k buildings) is excluded because those buildings
+    # are non-WUI and would dilute the score distribution without analytical value.
+    # WUI precision filtering occurs in T08 using CORINE land cover.
+    # Buildings in excluded zones can be added by extending download_chunks below.
+    download_chunks:
+      # [west, south, east, north] — WGS84
+      east_attica_ne:
+        bbox: [23.8, 37.95, 24.2, 38.3]
+        description: "Mati (validation area), Rafina, Gerakas, Pallini, eastern Hymettus slopes"
+        verified_count: 74724
+      east_attica_se:
+        bbox: [23.8, 37.6, 24.2, 37.95]
+        description: "Markopulo, Porto Rafti, Lavrio — low-density eastern coastal zone"
+        verified_count: 7792
+      north_attica_wui:
+        bbox: [23.7, 38.1, 24.0, 38.3]
+        description: "Varybobi, Tatoi, Agios Stefanos — Parnitha/Penteli forest interface"
+        verified_count: 9505   # Overpass count 2026-04-04; 2337 unique after dedup with NE overlap
+  fallback:
+    name: Microsoft Building Footprints (Greece)
+    # https://github.com/microsoft/GlobalMLBuildingFootprints
+    download_url: "https://minedbuildings.z5.web.core.windows.net/global-buildings/dataset-links.csv"
+    country_filter: "Greece"
+    output_file: "data/raw/buildings_msft_attica.gpkg"
+
+# ── Digital Elevation Model ────────────────────────────────────────────────────
+dem:
+  name: Copernicus GLO-30 DEM
+  provider: Copernicus Data Space Ecosystem
+  resolution_m: 30
+  format: GeoTIFF
+  # Tiles covering Attica bbox (1°x1° tiles, naming: Copernicus_DSM_COG_10_N37_00_E023_00_DEM)
+  tiles:
+    - "N37_E023"
+    - "N37_E024"
+    - "N38_E023"
+    - "N38_E024"
+  output_dir: "data/raw/dem"
+  credentials: "CopernicusDataSpace"  # Windows Credential Manager key
+
+# ── Land Cover ────────────────────────────────────────────────────────────────
+# Primary source: ESA WorldCover 2021 v200 (10 m, AWS S3 public)
+# Substitution note: CORINE CLC 2018 (EEA WMS) was the original source, but the
+# EEA WMS returns blank tiles and the ImageServer ExportImage endpoint returns 404.
+# ESA WorldCover provides equivalent fire-vegetation classification at higher
+# resolution. See src/acquire/corine.py for full documentation.
+corine:
+  name: ESA WorldCover 2021 v200 (substituting CORINE CLC 2018)
+  provider: European Space Agency (ESA) / Copernicus
+  download_base: "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map"
+  resolution_m: 10
+  format: GeoTIFF
+  output_file: "data/raw/corine/landcover_attica_2021.tif"
+  # Fire-relevant WorldCover class codes (uint8 pixel values)
+  fire_vegetation_codes:
+    - 10   # Tree cover       (≈ CLC 311/312/313 forests)
+    - 20   # Shrubland        (≈ CLC 322/323/324 maquis/garrigue — HIGH fire risk in Med)
+    - 30   # Grassland        (≈ CLC 321 natural grasslands)
+  # Additional reference: original CORINE CLC 2018 fire classes (for documentation)
+  corine_original_fire_codes:
+    - 311  # Broad-leaved forest
+    - 312  # Coniferous forest
+    - 313  # Mixed forest
+    - 321  # Natural grasslands
+    - 322  # Moors and heathland
+    - 323  # Sclerophyllous vegetation
+    - 324  # Transitional woodland-shrub
+    - 333  # Sparsely vegetated areas
+    - 334  # Burnt areas
+
+# ── EFFIS Fire Perimeters ──────────────────────────────────────────────────────
+effis:
+  name: EFFIS Historical Fire Database
+  provider: European Forest Fire Information System (JRC)
+  wfs_url: "https://effis.jrc.ec.europa.eu/arcgis/services/EFFIS/SystemsQuery/MapServer/WFSServer"
+  # Alternatively: direct GeoPackage download
+  gpkg_url: "https://gwis.jrc.ec.europa.eu/apps/data_download/GWIS_fire_perimeters"
+  date_range: ["2000-01-01", "2024-12-31"]
+  country_filter: "GR"  # Greece
+  output_file: "data/raw/effis/fire_perimeters_greece.gpkg"
+  # Mati 2018 event reference for validation
+  mati_2018:
+    date: "2018-07-23"
+    approx_center: [23.978, 38.058]  # [lon, lat]
+    ems_activation: "EMSR300"  # Copernicus EMS activation (fallback ground truth)
+
+# ── Fire Weather Index ─────────────────────────────────────────────────────────
+era5_fwi:
+  name: FWI from Copernicus Climate Data Store
+  provider: CDS / ECMWF
+  dataset: "cems-fire-historical"
+  variables:
+    - "fire_weather_index"
+    - "drought_code"
+  time_resolution: daily
+  # Request daily aggregates, not hourly (to reduce download volume)
+  frequency: "daily"
+  date_range: ["2015-01-01", "2024-12-31"]
+  area: [38.3, 23.4, 37.6, 24.2]  # [north, west, south, east] for CDS API
+  output_dir: "data/raw/fwi"
+  # Fallback: compute FWI from ERA5-Land raw vars if CDS dataset unavailable
+  fallback_dataset: "reanalysis-era5-land"
+
+# ── NDVI ──────────────────────────────────────────────────────────────────────
+ndvi:
+  name: Copernicus HR-VPP NDVI composites
+  provider: Copernicus Land Monitoring Service
+  # Seasonal composites (MJJAS fire-season composite, 10m resolution)
+  product: "vegetation-phenology-and-productivity"
+  resolution_m: 10
+  output_dir: "data/raw/ndvi"
+  fallback:
+    name: MODIS MOD13Q1 NDVI (250m, 16-day composite)
+    provider: NASA Earthdata
+    dataset: "MOD13Q1.061"
+    credentials: "EarthdataToken"  # Windows Credential Manager key
+
+# ── FIRMS Fire Points ──────────────────────────────────────────────────────────
+firms:
+  name: FIRMS VIIRS I-Band 375m Active Fire
+  provider: NASA FIRMS
+  api_url: "https://firms.modaps.eosdis.nasa.gov/api/area/csv"
+  # API key from MAP_KEY environment variable (never hardcode)
+  api_key_env: "MAP_KEY"
+  satellite: "VIIRS_SNPP_NRT"
+  date_range: ["2015-01-01", "2024-12-31"]
+  output_file: "data/raw/firms/viirs_attica.csv"
+
+# ── OSM Infrastructure ────────────────────────────────────────────────────────
+osm_infra:
+  name: OSM Roads and Fire Stations
+  api_url: "https://overpass-api.de/api/interpreter"
+  output_dir: "data/raw/osm"
+  layers:
+    roads:
+      output_file: "data/raw/osm/roads_attica.gpkg"
+      osm_filters: '["highway"~"motorway|trunk|primary|secondary|tertiary|residential"]'
+    fire_stations:
+      output_file: "data/raw/osm/fire_stations_attica.gpkg"
+      osm_filters: '["amenity"="fire_station"]'
