@@ -1,0 +1,183 @@
+# WildfireRisk-EU — Feature Engineering Configuration
+# Defines buffer sizes, thresholds, and derivation parameters
+# for all planned features across 5 groups (21 effective at runtime; see README).
+# Feature names match DuckDB column names exactly.
+
+# ── Group 1: Terrain (6 features) ─────────────────────────────────────────────
+terrain:
+  source_dem: "data/processed/dem_attica_epsg2100.tif"
+  features:
+    elevation_m:
+      description: "Building centroid elevation above sea level"
+      unit: meters
+      direction: neutral  # higher elevation not inherently riskier in WUI context
+
+    slope_deg:
+      description: "Slope angle at building centroid"
+      unit: degrees
+      direction: positive  # steeper slope → fire spreads faster uphill
+      valid_range: [0, 90]
+
+    aspect_deg:
+      description: "Aspect (compass direction of slope face)"
+      unit: degrees
+      direction: custom  # south/southwest faces drier in northern hemisphere
+      valid_range: [0, 360]
+
+    # Derived: convert aspect to fire-risk-relevant score
+    # south_aspect_score = abs(cos(aspect_rad))  — south faces score highest
+    south_aspect_score:
+      description: "South-facing slope exposure score (0=north, 1=south)"
+      unit: dimensionless
+      direction: positive
+
+    tpi_300m:
+      description: "Topographic Position Index at 300m radius (ridge vs valley)"
+      unit: dimensionless
+      direction: positive  # ridges (positive TPI) see higher wind speeds
+      kernel_radius_m: 300
+
+    tri_300m:
+      description: "Terrain Ruggedness Index at 300m radius"
+      unit: dimensionless
+      direction: neutral
+
+# ── Group 2: Vegetation (9 features) ──────────────────────────────────────────
+vegetation:
+  source_corine: "data/processed/corine_binary_epsg2100.tif"
+  source_ndvi: "data/processed/ndvi_season_composite_epsg2100.tif"
+  features:
+    ndvi_mean_100m:
+      description: "Mean NDVI within 100m buffer of building centroid"
+      direction: positive
+      buffer_m: 100
+
+    ndvi_mean_500m:
+      description: "Mean NDVI within 500m buffer"
+      direction: positive
+      buffer_m: 500
+
+    ndvi_max_500m:
+      description: "Max NDVI within 500m buffer (captures dense veg patches)"
+      direction: positive
+      buffer_m: 500
+
+    veg_fraction_100m:
+      description: "Fraction of CORINE fire-vegetation classes within 100m"
+      direction: positive
+      buffer_m: 100
+
+    veg_fraction_500m:
+      description: "Fraction of CORINE fire-vegetation classes within 500m"
+      direction: positive
+      buffer_m: 500
+
+    dist_to_forest_m:
+      description: "Distance to nearest CORINE forest/scrubland pixel (codes 311-324)"
+      unit: meters
+      direction: negative  # closer = higher risk
+
+    dist_to_scrubland_m:
+      description: "Distance to nearest sclerophyllous vegetation (CLC 323)"
+      unit: meters
+      direction: negative
+
+    wui_class:
+      description: "WUI classification: 0=urban, 1=interface WUI, 2=intermix WUI"
+      direction: positive  # intermix WUI = highest risk
+      # Interface WUI: building density >6.17 bldg/km² + veg_fraction_500m > 0.5
+      # Intermix WUI: building density <6.17 bldg/km² + veg_fraction_500m > 0.5
+      interface_density_threshold: 6.17   # buildings per km²
+      veg_fraction_threshold: 0.50
+
+    veg_continuity_500m:
+      description: "Fraction of vegetated pixels in 500m radius that are connected (largest patch)"
+      direction: positive
+      buffer_m: 500
+
+# ── Group 3: Fire Weather (5 features) ────────────────────────────────────────
+fire_weather:
+  source_fwi: "data/processed/fwi_daily_attica.nc"
+  # Fire season = June–October per pipeline.yaml
+  features:
+    fwi_season_mean:
+      description: "Mean daily FWI during fire season, averaged over scoring period"
+      direction: positive
+
+    fwi_season_p90:
+      description: "90th percentile daily FWI during fire season"
+      direction: positive
+
+    fwi_season_max:
+      description: "Maximum single-day FWI during fire season"
+      direction: positive
+
+    dc_season_mean:
+      description: "Mean Drought Code during fire season (fuel moisture proxy)"
+      direction: positive
+
+    fwi_extreme_days:
+      description: "Count of days with FWI > 30 (Very High category) per season"
+      direction: positive
+      extreme_threshold: 30
+
+# ── Group 4: Fire History (6 features) ────────────────────────────────────────
+fire_history:
+  source_effis: "data/processed/effis_perimeters_attica_epsg2100.gpkg"
+  source_firms: "data/processed/firms_viirs_attica_epsg2100.gpkg"
+  # History window: 2000 to scoring cutoff (pre-event for validation)
+  features:
+    dist_to_nearest_fire_m:
+      description: "Distance to nearest historical EFFIS fire perimeter boundary"
+      unit: meters
+      direction: negative
+
+    fire_count_5km:
+      description: "Count of EFFIS fire events with perimeter within 5km"
+      direction: positive
+      buffer_m: 5000
+
+    fire_count_10km:
+      description: "Count of EFFIS fire events with perimeter within 10km"
+      direction: positive
+      buffer_m: 10000
+
+    ever_burned:
+      description: "1 if building falls within any historical EFFIS perimeter, else 0"
+      direction: positive  # paradox: burned areas have reduced fuel short-term; treat as risk indicator for reburn
+
+    firms_hotspot_count_5km:
+      description: "Count of VIIRS hotspot detections within 5km over scoring period"
+      direction: positive
+      buffer_m: 5000
+
+    recency_score:
+      description: "Recency-weighted fire count (recent fires weighted more heavily)"
+      direction: positive
+      # weight = 1 / (years_since_fire + 1)
+
+# ── Group 5: Proximity (4 features) ───────────────────────────────────────────
+proximity:
+  source_roads: "data/processed/osm_roads_attica_epsg2100.gpkg"
+  source_fire_stations: "data/processed/osm_fire_stations_attica_epsg2100.gpkg"
+  features:
+    dist_to_road_m:
+      description: "Distance to nearest road (any highway class)"
+      unit: meters
+      direction: neutral  # roads = firebreaks but also ignition pathways
+
+    dist_to_fire_station_m:
+      description: "Distance to nearest OSM fire station"
+      unit: meters
+      direction: negative  # farther = less suppression capacity
+
+    road_density_500m:
+      description: "Total road length (meters) within 500m buffer"
+      unit: m/km²
+      direction: neutral
+      buffer_m: 500
+
+    building_density_500m:
+      description: "Count of buildings within 500m (exposure density)"
+      direction: positive  # dense WUI = higher aggregate loss potential
+      buffer_m: 500
