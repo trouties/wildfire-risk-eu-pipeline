@@ -1,0 +1,50 @@
+# WildfireRisk-EU — Scoring Configuration
+# Defines group weights, normalization method, and risk classification.
+
+# ── Group Weights ──────────────────────────────────────────────────────────────
+# Must sum to 1.0. Reflects relative contribution of each feature group
+# to wildfire building loss risk in Mediterranean WUI context.
+weights:
+  vegetation:   0.30   # Highest: fuel load and continuity drive spread
+  terrain:      0.20   # Slope/aspect directly affect fire behaviour
+  fire_weather: 0.20   # FWI captures seasonal atmospheric conditions
+  fire_history: 0.20   # Proximity to past fires = known hazard zones
+  proximity:    0.10   # Suppression access and ignition pathways
+
+# ── Normalization ──────────────────────────────────────────────────────────────
+normalization:
+  method: percentile   # rank-based, robust to outliers
+  # Features with direction=negative are inverted before normalization
+  # (e.g., dist_to_forest_m: lower distance → higher score → invert)
+  clip_percentiles: [1, 99]  # Winsorize before ranking to reduce outlier influence
+
+# ── Within-Group Aggregation ───────────────────────────────────────────────────
+# How individual feature scores are combined within each group.
+group_aggregation:
+  method: equal_weight  # equal weight within group; change to 'custom' to specify per-feature weights
+  # custom weights would be defined per feature in features.yaml under 'score_weight' key
+
+# ── Composite Score ────────────────────────────────────────────────────────────
+composite:
+  # composite_score = sum(group_weight * group_score)
+  # Result is in [0, 1] after normalization
+  output_column: composite_score
+
+# ── Risk Classification ────────────────────────────────────────────────────────
+classification:
+  method: quintile   # 5 equal-population classes (each ~20% of buildings)
+  classes:
+    1: {label: "Very Low",    min_percentile: 0,  max_percentile: 20}
+    2: {label: "Low",         min_percentile: 20, max_percentile: 40}
+    3: {label: "Medium",      min_percentile: 40, max_percentile: 60}
+    4: {label: "High",        min_percentile: 60, max_percentile: 80}
+    5: {label: "Very High",   min_percentile: 80, max_percentile: 100}
+  output_column: risk_class
+
+# ── Map Colours (Folium) ───────────────────────────────────────────────────────
+map_colors:
+  1: "#1a9641"   # Very Low — green
+  2: "#a6d96a"   # Low — light green
+  3: "#ffffbf"   # Medium — yellow
+  4: "#fdae61"   # High — orange
+  5: "#d7191c"   # Very High — red
