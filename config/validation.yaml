@@ -1,0 +1,63 @@
+# WildfireRisk-EU — Validation Configuration
+# Defines holdout events, ground truth sources, metrics, and baseline model.
+
+# ── Holdout Events ─────────────────────────────────────────────────────────────
+holdout_events:
+  mati_2018:
+    name: "Mati Wildfire, East Attica"
+    fire_id: "EFFIS_20180723_009"
+    date: "2018-07-23"
+    feature_cutoff: "2018-07-22"
+    fwi_cutoff: "2018-07-22"
+    fire_history_cutoff: "2018-07-22"
+    geo_split_lat: 38.05
+    ground_truth:
+      primary_source: "effis"
+      fallback_source: "emsr300"
+      burned_label: 1
+      unburned_label: 0
+    validation_bbox: [23.85, 37.98, 24.10, 38.12]
+    notes: >
+      Fast-moving coastal fire in Mati residential/resort area, east Attica.
+      Fire behaviour was heavily wind-driven; static terrain/veg features may
+      underpredict risk. Honest failure analysis required.
+
+# ── Metrics ────────────────────────────────────────────────────────────────────
+metrics:
+  primary:
+    - name: auc_roc
+      description: "Area Under ROC Curve (discriminating burned vs unburned)"
+      failure_threshold: 0.60
+      target_threshold: 0.70
+
+  secondary:
+    - name: precision_at_100
+      description: "Fraction of top-100 scored buildings that were actually burned"
+
+    - name: lift_at_top10pct
+      description: "Recall concentration: fraction of all burned buildings in top 10% of scores"
+
+# ── Baseline Model ─────────────────────────────────────────────────────────────
+baseline:
+  name: distance_to_forest
+  description: "Score = 1 / (dist_to_forest_m + 1). No terrain, weather, or history."
+  feature: dist_to_forest_m
+  direction: negative
+
+# ── Failure Analysis ───────────────────────────────────────────────────────────
+failure_analysis:
+  n_top_false_negatives: 10
+  output_columns:
+    - building_id
+    - composite_score
+    - risk_class
+    - terrain_score
+    - vegetation_score
+    - fire_weather_score
+    - fire_history_score
+    - proximity_score
+    - dist_to_forest_m
+    - slope_deg
+    - fwi_season_max
+    - wui_class
+    - burned

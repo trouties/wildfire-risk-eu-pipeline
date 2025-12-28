@@ -8,7 +8,7 @@ RUFF   := ruff
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install lint test acquire preprocess features clean
+.PHONY: help install lint test acquire preprocess features score validate clean all
 
 help:  ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -38,6 +38,7 @@ preprocess:  ## Stage 2 — Clean, harmonize, load to DuckDB
 	$(PYTHON) -m src.preprocess.terrain
 	$(PYTHON) -m src.preprocess.vegetation
 	$(PYTHON) -m src.preprocess.fwi
+	$(PYTHON) -m src.preprocess.fire_history
 
 features:  ## Stage 3 — Extract structural per-building features
 	$(PYTHON) -m src.features.terrain
@@ -45,7 +46,18 @@ features:  ## Stage 3 — Extract structural per-building features
 	$(PYTHON) -m src.features.fire_weather
 	$(PYTHON) -m src.features.fire_history
 
+score:  ## Stage 4 — Compute risk scores
+	$(PYTHON) -m src.scoring.engine
+
+validate:  ## Stage 5 — Backtest against Mati 2018
+	$(PYTHON) -m src.validation.validator
+
+# ── End-to-end pipeline ──────────────────────────────────────────────────────
+
+all: acquire preprocess features score validate  ## Run v1 structural pipeline end-to-end
+
 clean:  ## Remove processed data and outputs (keeps raw data)
 	@echo "Removing processed data and outputs..."
 	@rm -rf data/processed/*
+	@rm -rf outputs/tables/* outputs/maps/* outputs/reports/* outputs/summaries/*
 	@echo "Done. Raw data in data/raw/ preserved."
