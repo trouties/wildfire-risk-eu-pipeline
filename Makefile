@@ -8,7 +8,7 @@ RUFF   := ruff
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install lint test acquire preprocess features score validate clean all
+.PHONY: help install lint test acquire preprocess features score validate outputs clean all
 
 help:  ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -52,9 +52,15 @@ score:  ## Stage 4 — Compute risk scores
 validate:  ## Stage 5 — Backtest against Mati 2018
 	$(PYTHON) -m src.validation.validator
 
+outputs:  ## Stage 6 — Generate deliverables
+	$(PYTHON) -m src.outputs.result_table
+	$(PYTHON) -m src.outputs.risk_map
+	$(PYTHON) -m src.outputs.validation_report
+	$(PYTHON) -m src.outputs.executive_summary
+
 # ── End-to-end pipeline ──────────────────────────────────────────────────────
 
-all: acquire preprocess features score validate  ## Run v1 structural pipeline end-to-end
+all: acquire preprocess features score validate outputs  ## Run v1 structural pipeline end-to-end
 
 clean:  ## Remove processed data and outputs (keeps raw data)
 	@echo "Removing processed data and outputs..."
