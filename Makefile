@@ -18,9 +18,15 @@ install:  ## Install package in editable mode
 	$(PYTHON) -m pip install -e ".[dev]"
 
 lint:  ## Run ruff linter
+
+lint-fix:  ## Run ruff with auto-fix
+	$(RUFF) check --fix src/ tests/
 	$(RUFF) check src/ tests/
 
 test:  ## Run test suite
+
+test-cov:  ## Run tests with coverage report
+	$(PYTEST) tests/ --cov=src --cov-report=term-missing
 	$(PYTEST) tests/
 
 # ── Pipeline stages ────────────────────────────────────────────────────────────
