@@ -1,0 +1,101 @@
+{
+  "event": "EFFIS_20180723_009",
+  "event_date": "2018-07-23",
+  "validation_bbox": [
+    23.85,
+    37.98,
+    24.1,
+    38.12
+  ],
+  "population": {
+    "n_buildings": 20891,
+    "n_burned": 1191,
+    "n_unburned": 19700,
+    "prevalence": 0.057010195778086255
+  },
+  "model": {
+    "auc_roc": 0.47830842145192154,
+    "auc_roc_ci_lower": 0.4646020323392139,
+    "auc_roc_ci_upper": 0.4920800097222859,
+    "lift_at_top10pct": 0.12589034987285022,
+    "precision_cls5": 0.046561992420140766,
+    "recall_cls45": 0.7825356842989085,
+    "n_cls5": 9235
+  },
+  "baseline": {
+    "name": "dist_to_forest_naive",
+    "auc_roc": 0.6015906737076295,
+    "auc_roc_ci_lower": 0.5844813963200983,
+    "auc_roc_ci_upper": 0.6167455504429121,
+    "lift_at_top10pct": 1.5190768884657257
+  },
+  "model_vs_baseline": {
+    "auc_roc_delta": -0.12328225225570799,
+    "lift_delta": -1.3931865385928754
+  },
+  "class_stats": {
+    "1": {
+      "n_buildings": 707,
+      "n_burned": 15,
+      "burned_rate": 0.021216407355021217
+    },
+    "2": {
+      "n_buildings": 1625,
+      "n_burned": 49,
+      "burned_rate": 0.030153846153846153
+    },
+    "3": {
+      "n_buildings": 3498,
+      "n_burned": 195,
+      "burned_rate": 0.05574614065180103
+    },
+    "4": {
+      "n_buildings": 5826,
+      "n_burned": 502,
+      "burned_rate": 0.08616546515619636
+    },
+    "5": {
+      "n_buildings": 9235,
+      "n_burned": 430,
+      "burned_rate": 0.046561992420140766
+    }
+  },
+  "mean_scores": {
+    "burned": {
+      "composite_score": 0.5680190434011061,
+      "score_terrain": 0.44920742093767746,
+      "score_vegetation": 0.758595871605936,
+      "score_fire_weather": 0.4881054235281271,
+      "score_fire_history": 0.48087904343026855
+    },
+    "unburned": {
+      "composite_score": 0.577557778413148,
+      "score_terrain": 0.5480263895321595,
+      "score_vegetation": 0.5840144248660607,
+      "score_fire_weather": 0.6658199882938863,
+      "score_fire_history": 0.5091419877340287
+    }
+  },
+  "geographic_diagnostic": {
+    "south": {
+      "lat_threshold": 38.05,
+      "n_buildings": 16083,
+      "n_burned": 342,
+      "prevalence": 0.021264689423614997,
+      "auc_roc_model": 0.7531770684148483,
+      "auc_roc_baseline": 0.5546554775011135
+    },
+    "north": {
+      "lat_threshold": 38.05,
+      "n_buildings": 4808,
+      "n_burned": 849,
+      "prevalence": 0.17658069883527455,
+      "auc_roc_model": 0.1777087347907334,
+      "auc_roc_baseline": 0.5776140064637802
+    }
+  },
+  "thresholds": {
+    "auc_failure": 0.6,
+    "auc_target": 0.7
+  }
+}

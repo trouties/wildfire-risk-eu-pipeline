@@ -2,42 +2,69 @@
 # Defines holdout events, ground truth sources, metrics, and baseline model.
 
 # ── Holdout Events ─────────────────────────────────────────────────────────────
+# 2-event LOEO: Mati 2018, Varybobi 2021.
 holdout_events:
   mati_2018:
     name: "Mati Wildfire, East Attica"
     fire_id: "EFFIS_20180723_009"
     date: "2018-07-23"
-    feature_cutoff: "2018-07-22"
-    fwi_cutoff: "2018-07-22"
+    feature_cutoff: "2018-07-22"    # Score buildings using only pre-event features
+    fwi_cutoff: "2018-07-22"        # Use FWI data only up to this date
     fire_history_cutoff: "2018-07-22"
-    geo_split_lat: 38.05
+    geo_split_lat: 38.05            # Latitude for geographic diagnostic split
+    # Ground truth: spatial intersection with fire perimeter
     ground_truth:
-      primary_source: "effis"
-      fallback_source: "emsr300"
+      primary_source: "effis"       # EFFIS fire perimeter (src/acquire/effis.py)
+      fallback_source: "emsr300"    # Copernicus EMS activation EMSR300
+      # EMSR300 grading map: https://emergency.copernicus.eu/mapping/list-of-activations-rapid/EMSR300
       burned_label: 1
       unburned_label: 0
-    validation_bbox: [23.85, 37.98, 24.10, 38.12]
+    # Spatial filter: restrict validation to buildings within this bbox of the fire
+    validation_bbox: [23.85, 37.98, 24.10, 38.12]  # [west, south, east, north]
     notes: >
       Fast-moving coastal fire in Mati residential/resort area, east Attica.
       Fire behaviour was heavily wind-driven; static terrain/veg features may
       underpredict risk. Honest failure analysis required.
+
+  varybobi_2021:
+    name: "Varybobi Wildfire, North Attica"
+    fire_id: "EFFIS_20210803_013"
+    date: "2021-08-03"
+    feature_cutoff: "2021-08-02"
+    fwi_cutoff: "2021-08-02"
+    fire_history_cutoff: "2021-08-02"
+    geo_split_lat: 38.15            # Latitude for geographic diagnostic split
+    ground_truth:
+      primary_source: "effis"       # EFFIS fire perimeter (literature proxy)
+      fallback_source: "emsr531"    # Copernicus EMS activation EMSR531
+      burned_label: 1
+      unburned_label: 0
+    # Validation bbox covers Varibobi–Tatoi–Afidnes fire spread area
+    validation_bbox: [23.60, 38.05, 23.95, 38.25]  # [west, south, east, north]
+    notes: >
+      Large terrain-driven wildfire in forested slopes north of Athens
+      (Varibobi, Tatoi, Afidnes). ~6,300 ha burned. Fire spread was
+      terrain/fuel-driven rather than wind-driven, so structural
+      susceptibility model should perform better than on Mati.
 
 # ── Metrics ────────────────────────────────────────────────────────────────────
 metrics:
   primary:
     - name: auc_roc
       description: "Area Under ROC Curve (discriminating burned vs unburned)"
-      failure_threshold: 0.60
-      target_threshold: 0.70
+      failure_threshold: 0.60    # Below this = model is worse than near-random
+      target_threshold: 0.70     # Below this = flag for failure analysis
 
   secondary:
     - name: precision_at_100
       description: "Fraction of top-100 scored buildings that were actually burned"
+      # Stakeholder-relevant: 'if I flag 100 properties as Very High risk, how many truly burned?'
 
     - name: lift_at_top10pct
       description: "Recall concentration: fraction of all burned buildings in top 10% of scores"
 
 # ── Baseline Model ─────────────────────────────────────────────────────────────
+# Naive model for comparison. Model must beat baseline on all primary metrics.
 baseline:
   name: distance_to_forest
   description: "Score = 1 / (dist_to_forest_m + 1). No terrain, weather, or history."
@@ -46,7 +73,7 @@ baseline:
 
 # ── Failure Analysis ───────────────────────────────────────────────────────────
 failure_analysis:
-  n_top_false_negatives: 10
+  n_top_false_negatives: 10   # Analyze top-10 burned buildings with lowest scores
   output_columns:
     - building_id
     - composite_score
@@ -60,4 +87,4 @@ failure_analysis:
     - slope_deg
     - fwi_season_max
     - wui_class
-    - burned
+    - burned  # ground truth label
