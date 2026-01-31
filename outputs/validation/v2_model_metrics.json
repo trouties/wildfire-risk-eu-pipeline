@@ -1,0 +1,57 @@
+{
+  "mati_2018": {
+    "n_buildings": 20891,
+    "n_burned": 1191,
+    "prevalence": 0.057,
+    "auc_structural_v1": 0.4783,
+    "auc_structural_v1_ci_lower": 0.4646,
+    "auc_structural_v1_ci_upper": 0.4921,
+    "auc_lgbm_v2": 0.565,
+    "auc_lgbm_v2_ci_lower": 0.5511,
+    "auc_lgbm_v2_ci_upper": 0.5792,
+    "auc_delta": 0.0867
+  },
+  "varybobi_2021": {
+    "n_buildings": 28779,
+    "n_burned": 3178,
+    "prevalence": 0.1104,
+    "auc_structural_v1": 0.625,
+    "auc_structural_v1_ci_lower": 0.6154,
+    "auc_structural_v1_ci_upper": 0.6334,
+    "auc_lgbm_v2": 0.4919,
+    "auc_lgbm_v2_ci_lower": 0.4818,
+    "auc_lgbm_v2_ci_upper": 0.502,
+    "auc_delta": -0.1331
+  },
+  "kalamos_2015": {
+    "n_buildings": 973,
+    "n_burned": 30,
+    "prevalence": 0.0308,
+    "auc_structural_v1": 0.8386,
+    "auc_structural_v1_ci_lower": 0.7802,
+    "auc_structural_v1_ci_upper": 0.8901,
+    "auc_lgbm_v2": 0.7943,
+    "auc_lgbm_v2_ci_lower": 0.7492,
+    "auc_lgbm_v2_ci_upper": 0.8302,
+    "auc_delta": -0.0442
+  },
+  "acharnes_2021": {
+    "n_buildings": 1642,
+    "n_burned": 214,
+    "prevalence": 0.1303,
+    "auc_structural_v1": 0.2349,
+    "auc_structural_v1_ci_lower": 0.2137,
+    "auc_structural_v1_ci_upper": 0.2587,
+    "auc_lgbm_v2": 0.0413,
+    "auc_lgbm_v2_ci_lower": 0.0329,
+    "auc_lgbm_v2_ci_upper": 0.0509,
+    "auc_delta": -0.1936
+  },
+  "_meta": {
+    "loeo_n_features": 21,
+    "shap_n_features": 26,
+    "fire_history_excluded_from_loeo": true,
+    "is_unbalance": true,
+    "note": "Fire history features excluded from LOEO to avoid temporal leakage (test event fire included in feature computation). Full temporal cutoff deferred to v3."
+  }
+}
