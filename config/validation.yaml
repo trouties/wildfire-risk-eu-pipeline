@@ -2,7 +2,7 @@
 # Defines holdout events, ground truth sources, metrics, and baseline model.
 
 # ── Holdout Events ─────────────────────────────────────────────────────────────
-# 2-event LOEO: Mati 2018, Varybobi 2021.
+# 4-event LOEO: Kalamos 2015, Mati 2018, Varybobi 2021, Acharnes 2021.
 holdout_events:
   mati_2018:
     name: "Mati Wildfire, East Attica"
@@ -46,6 +46,46 @@ holdout_events:
       (Varibobi, Tatoi, Afidnes). ~6,300 ha burned. Fire spread was
       terrain/fuel-driven rather than wind-driven, so structural
       susceptibility model should perform better than on Mati.
+
+  kalamos_2015:
+    name: "Kalamos Wildfire, Northeast Attica"
+    fire_id: "EFFIS_20150817_007"
+    date: "2015-08-17"
+    feature_cutoff: "2015-08-16"
+    fwi_cutoff: "2015-08-16"
+    fire_history_cutoff: "2015-08-16"
+    geo_split_lat: 38.17
+    ground_truth:
+      primary_source: "effis"
+      burned_label: 1
+      unburned_label: 0
+    validation_bbox: [23.86, 38.12, 23.99, 38.22]
+    notes: >
+      Terrain-driven fire in low-density rural/coastal zone northeast of Attica.
+      n_burned=30 (3.1% prevalence) — AUC CI will be wide; treat as exploratory.
+      Temporal diversity value: earliest event in dataset (2015), independent
+      of 2018/2021 heat wave cluster. No EMS activation found; EFFIS proxy
+      perimeter only.
+
+  acharnes_2021:
+    name: "Acharnes-Ano Liosia Wildfire, West Attica"
+    fire_id: "EFFIS_20210823_014"
+    date: "2021-08-23"
+    feature_cutoff: "2021-08-22"
+    fwi_cutoff: "2021-08-22"
+    fire_history_cutoff: "2021-08-22"
+    geo_split_lat: 38.09
+    ground_truth:
+      primary_source: "effis"
+      burned_label: 1
+      unburned_label: 0
+    validation_bbox: [23.67, 38.03, 23.80, 38.14]
+    notes: >
+      Heat-wave-driven suburban fire 20 days after Varybobi, ~5km west.
+      n_burned=212 (12.9% prevalence), statistically robust for LOEO.
+      Proximity to Varybobi burn scar may suppress vegetation features
+      in overlap zone — document as known confound, not corrected.
+      No EMS activation found; EFFIS proxy perimeter only.
 
 # ── Metrics ────────────────────────────────────────────────────────────────────
 metrics:
