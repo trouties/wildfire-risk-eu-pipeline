@@ -49,6 +49,13 @@ secrets/
 .coverage
 htmlcov/
 
+# Tool / plugin configs
+.claude/
+.cursor/
+.aider*
+
+# Transient run logs
+*.run.log
 
 # Keep placeholders
 !data/raw/.gitkeep

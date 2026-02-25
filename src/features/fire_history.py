@@ -23,7 +23,7 @@ Spatial join logic:
   - recency_score reference year: pipeline config date_end year (2024).
 
 Caveats:
-  - EFFIS perimeters are proxy circular approximations (proxy circular approximations of actual fire boundaries).
+  - EFFIS perimeters are proxy circular approximations of actual fire boundaries.
     Geometric containment checks and distances are approximate.
   - ever_burned = (dist_to_nearest_fire_m == 0), but re-derived via spatial containment
     for clarity.  Small floating-point differences (< 1mm) are masked.
