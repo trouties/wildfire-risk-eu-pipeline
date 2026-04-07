@@ -3,14 +3,14 @@
 **To**: Portfolio Underwriting Team
 **From**: Geospatial Risk Analytics
 **Date**: 2026-04-07
-**Re**: Pre-season wildfire risk scores for 84,776 assessed buildings, Attica WUI
+**Re**: Pre-season wildfire risk scores for 169,855 assessed buildings, Attica WUI
 
 ---
 
 ## Purpose
 
 This memo summarises the WildfireRisk-EU v2 pre-season wildfire exposure assessment
-for 84,776 buildings across the Attica Region, Greece.  Scores combine a structural
+for 169,855 buildings across the Attica Region, Greece.  Scores combine a structural
 susceptibility layer (terrain, vegetation, fire weather climatology, fire history) with
 an event-context dynamic layer (ERA5-derived wind/VPD/drought + LightGBM).  Scores
 support re-pricing, exclusion decisions, and accumulation monitoring ahead of the
@@ -22,13 +22,13 @@ June–October fire season.
 
 | Risk Class | Buildings (n) | Portfolio (%) | Recommended Action |
 |------------|--------------|---------------|--------------------|
-| 5 — Very High | 16,955 | 20.0% | Primary attention list — mandatory review |
-| 4 — High | 16,955 | 20.0% | Monitor; consider sub-limits at renewal |
-| 3 — Medium | 16,955 | 20.0% | Standard terms |
-| 2 — Low | 16,955 | 20.0% | Standard terms |
-| 1 — Very Low | 16,956 | 20.0% | Preferred risk |
+| 5 — Very High | 33,971 | 20.0% | Primary attention list — mandatory review |
+| 4 — High | 33,971 | 20.0% | Monitor; consider sub-limits at renewal |
+| 3 — Medium | 33,971 | 20.0% | Standard terms |
+| 2 — Low | 33,971 | 20.0% | Standard terms |
+| 1 — Very Low | 33,971 | 20.0% | Preferred risk |
 
-**16,955 buildings (20.0% of portfolio) are classified Very High Risk.**
+**33,971 buildings (20.0% of portfolio) are classified Very High Risk.**
 These should be the primary focus of pre-season underwriting review.
 
 ---
@@ -77,9 +77,9 @@ features (building density gradient, wind-geometry interaction).
 
 | Tier | Action |
 |------|--------|
-| Very High (16,955 buildings) | Mandatory pre-renewal site survey; consider wildfire sub-limit or exclusion |
-| High (16,955 buildings) | Wildfire premium loading; flag for accumulation monitoring |
-| Medium (16,955 buildings) | Standard terms; include in portfolio aggregate CAT model run |
+| Very High (33,971 buildings) | Mandatory pre-renewal site survey; consider wildfire sub-limit or exclusion |
+| High (33,971 buildings) | Wildfire premium loading; flag for accumulation monitoring |
+| Medium (33,971 buildings) | Standard terms; include in portfolio aggregate CAT model run |
 | Low / Very Low | Standard terms |
 
 > **Caveat**: For suburban WUI locations at the wildland edge (Acharnes, Mati coast

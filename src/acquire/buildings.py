@@ -13,7 +13,7 @@ Download scope
 The full Attica AOI bbox contains ~413,000 buildings (verified 2026-04-04).
 Dense urban central Athens (~330k buildings) is excluded here because those
 buildings are non-WUI and would dilute the analysis without analytical value.
-The download covers three geographic chunks (defined in config/data_sources.yaml
+The download covers five geographic chunks (defined in config/data_sources.yaml
 → buildings.primary.download_chunks):
 
   east_attica_ne  [23.8, 37.95, 24.2, 38.3]  ~74,700 bldgs
@@ -23,17 +23,25 @@ The download covers three geographic chunks (defined in config/data_sources.yaml
   east_attica_se  [23.8, 37.6, 24.2, 37.95]  ~7,800 bldgs
     Markopulo, Porto Rafti, Lavrio — low-density eastern coastal zone.
 
-  north_attica_wui  [23.7, 38.1, 24.0, 38.3]  count TBD
+  north_attica_wui  [23.7, 38.1, 24.0, 38.3]  ~9,500 bldgs
     Varybobi, Tatoi, Agios Stefanos — Parnitha/Penteli forest interface.
     Also contains the Phase 2 Varybobi 2021 validation area.
 
+  west_attica_north  [23.4, 38.0, 23.7, 38.3]  count TBD
+    Vilia, Erythres, Fyli, Dervenochoria — Pateras/Kithairon forest WUI.
+    Includes the 2021 Vilia wildfire area.
+
+  west_attica_south  [23.4, 37.6, 23.7, 38.0]  count TBD
+    Megara, Kineta, Agioi Theodoroi — western coastal/mountain WUI.
+    Includes the 2018 Kineta wildfire area.
+
 Excluded
 --------
-Central Athens and inner suburbs (Piraeus, Peristeri, Ilion, Egaleo, etc.)
-are not downloaded. They are clearly non-WUI and represent ~80% of the total
-building stock in the AOI. The suburban fringe of these areas that abuts
-forest (e.g., southern Hymettus slopes within Athens municipality) is
-partially captured via the east_attica_ne chunk.
+Central Athens and inner suburbs ([23.7, 37.6, 23.8, 38.1] — Piraeus,
+Peristeri, Ilion, Egaleo, etc.) are not downloaded. They are clearly non-WUI
+and represent ~80% of the total building stock in the AOI. The suburban fringe
+of these areas that abuts forest (e.g., southern Hymettus slopes within Athens
+municipality) is partially captured via the east_attica_ne chunk.
 
 Column schema (GeoPackage, EPSG:4326)
 --------------------------------------

@@ -11,10 +11,10 @@ buildings:
     output_file: "data/raw/buildings_osm_attica.gpkg"
     expected_min_count: 5000
     query_timeout_s: 300
-    # Download scope: WUI-focused geographic chunks.
+    # Download scope: WUI-focused geographic chunks covering the full AOI width.
     # Full Attica AOI bbox contains ~413k buildings (verified 2026-04-04 via count query).
-    # Dense urban central Athens (~330k buildings) is excluded because those buildings
-    # are non-WUI and would dilute the score distribution without analytical value.
+    # Dense urban central Athens ([23.7,37.6,23.8,38.1], ~330k buildings) is excluded
+    # because those buildings are non-WUI and would dilute the score distribution.
     # WUI precision filtering occurs in T08 using CORINE land cover.
     # Buildings in excluded zones can be added by extending download_chunks below.
     download_chunks:
@@ -31,6 +31,14 @@ buildings:
         bbox: [23.7, 38.1, 24.0, 38.3]
         description: "Varybobi, Tatoi, Agios Stefanos — Parnitha/Penteli forest interface"
         verified_count: 9505   # Overpass count 2026-04-04; 2337 unique after dedup with NE overlap
+      west_attica_north:
+        bbox: [23.4, 38.0, 23.7, 38.3]
+        description: "Vilia, Erythres, Fyli, Dervenochoria — Pateras/Kithairon forest WUI (includes 2021 Vilia fire area)"
+        verified_count: null   # pending download
+      west_attica_south:
+        bbox: [23.4, 37.6, 23.7, 38.0]
+        description: "Megara, Kineta, Agioi Theodoroi — western coastal/mountain WUI (includes 2018 Kineta fire area)"
+        verified_count: null   # pending download
   fallback:
     name: Microsoft Building Footprints (Greece)
     # https://github.com/microsoft/GlobalMLBuildingFootprints

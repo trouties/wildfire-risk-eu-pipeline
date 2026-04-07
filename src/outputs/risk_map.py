@@ -72,7 +72,7 @@ def _epsg2100_to_wgs84_geojson(wkt_str: str) -> dict:
 
 def _load_events() -> dict:
     """Load event definitions from validation config."""
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     return cfg.get("holdout_events", {})
 

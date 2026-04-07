@@ -10,11 +10,11 @@
 
 | Metric | Acharnes 2021 | Kalamos 2015 (exploratory) | Mati 2018 | Varybobi 2021 |
 |--------|-----------|-----------|-----------|-----------|
-| AUC-ROC | **0.235** [0.21, 0.26] (FAIL) | **0.839** [0.78, 0.89] (PASS) | **0.478** [0.46, 0.49] (FAIL) | **0.625** [0.62, 0.63] (WARN) |
-| vs Baseline | -0.034 | +0.111 | -0.123 | +0.082 |
-| Lift@top10% | 0.00x | 3.64x | 0.13x | 1.00x |
-| Precision@class5 | 0.0% | 6.8% | 4.7% | 16.2% |
-| Recall@class4+5 | 9.8% | 100.0% | 78.3% | 64.2% |
+| AUC-ROC | **0.235** [0.21, 0.26] (FAIL) | **0.839** [0.78, 0.89] (PASS) | **0.451** [0.43, 0.47] (FAIL) | **0.625** [0.62, 0.63] (WARN) |
+| vs Baseline | -0.034 | +0.111 | -0.151 | +0.082 |
+| Lift@top10% | 0.00x | 3.64x | 0.84x | 1.00x |
+| Precision@class5 | 0.0% | 6.8% | 5.1% | 16.2% |
+| Recall@class4+5 | 9.8% | 100.0% | 96.1% | 64.2% |
 | Buildings | 1,642 | 973 | 20,891 | 28,779 |
 | Burned | 214 | 30 | 1,191 | 3,178 |
 | Prevalence | 13.0% | 3.1% | 5.7% | 11.0% |
@@ -186,17 +186,17 @@ in feature space (see Limitations).*
 
 | Metric | Model | Baseline | Status |
 |--------|-------|----------|--------|
-| AUC-ROC | **0.478** [0.46, 0.49] | 0.602 [0.58, 0.62] | FAIL |
-| Lift@top10% | 0.13x | 1.52x | BELOW |
-| Precision@class5 | 4.7% | -- | -- |
-| Recall@class4+5 | 78.3% | -- | -- |
+| AUC-ROC | **0.451** [0.43, 0.47] | 0.602 [0.58, 0.62] | FAIL |
+| Lift@top10% | 0.84x | 1.52x | BELOW |
+| Precision@class5 | 5.1% | -- | -- |
+| Recall@class4+5 | 96.1% | -- | -- |
 
 ### Geographic Diagnostic (split at 38.05 N)
 
 | Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) | Status |
 |----------|-----------|--------|-------------|----------------|--------|
-| south | 16,083 | 342 | **0.753** | 0.555 | PASS |
-| north | 4,808 | 849 | **0.178** | 0.578 | FAIL |
+| south | 16,083 | 342 | **0.787** | 0.555 | PASS |
+| north | 4,808 | 849 | **0.235** | 0.578 | FAIL |
 
 ### ROC Curve
 
@@ -210,36 +210,36 @@ in feature space (see Limitations).*
 
 | Class | Label | Buildings | Burned | Rate |
 |-------|-------|-----------|--------|------|
-| 5 | Very High | 9,235 | 430 | 4.7% |
-| 4 | High | 5,826 | 502 | 8.6% |
-| 3 | Medium | 3,498 | 195 | 5.6% |
-| 2 | Low | 1,625 | 49 | 3.0% |
-| 1 | Very Low | 707 | 15 | 2.1% |
+| 5 | Very High | 14,796 | 752 | 5.1% |
+| 4 | High | 5,100 | 393 | 7.7% |
+| 3 | Medium | 929 | 46 | 5.0% |
+| 2 | Low | 66 | 0 | 0.0% |
+| 1 | Very Low | 0 | 0 | 0.0% |
 
 ### Mean Score: Burned vs Unburned
 
 | Score Component | Burned | Unburned | Delta |
 |-----------------|--------|----------|-------|
-| composite_score | 0.568 | 0.578 | -0.010 |
-| score_terrain | 0.449 | 0.548 | -0.099 |
-| score_vegetation | 0.759 | 0.584 | +0.175 |
-| score_fire_weather | 0.488 | 0.666 | -0.178 |
-| score_fire_history | 0.481 | 0.509 | -0.028 |
+| composite_score | 0.647 | 0.659 | -0.012 |
+| score_terrain | 0.492 | 0.584 | -0.092 |
+| score_vegetation | 0.828 | 0.691 | +0.137 |
+| score_fire_weather | 0.461 | 0.643 | -0.182 |
+| score_fire_history | 0.718 | 0.703 | +0.015 |
 
 ### False Negative Profile (Top 10)
 
 | Building ID | Score | Class | Terrain | Vegetation | Fire Weather | Fire History |
 |-------------|-------|-------|---------|------------|-------------|-------------|
-| B0004285 | 0.392 | 1 | 0.223 | 0.499 | 0.368 | 0.426 |
-| B0000362 | 0.393 | 1 | 0.414 | 0.368 | 0.368 | 0.435 |
-| B0067358 | 0.394 | 1 | 0.219 | 0.508 | 0.368 | 0.423 |
-| B0050558 | 0.396 | 1 | 0.243 | 0.499 | 0.368 | 0.425 |
-| B0007816 | 0.399 | 1 | 0.276 | 0.476 | 0.368 | 0.436 |
-| B0032642 | 0.401 | 1 | 0.225 | 0.526 | 0.368 | 0.421 |
-| B0003602 | 0.402 | 1 | 0.227 | 0.490 | 0.368 | 0.478 |
-| B0069844 | 0.402 | 1 | 0.225 | 0.528 | 0.368 | 0.423 |
-| B0081458 | 0.405 | 1 | 0.243 | 0.489 | 0.368 | 0.478 |
-| B0047633 | 0.406 | 1 | 0.230 | 0.535 | 0.368 | 0.424 |
+| B0013446 | 0.489 | 3 | 0.287 | 0.597 | 0.327 | 0.690 |
+| B0000964 | 0.491 | 3 | 0.427 | 0.511 | 0.327 | 0.689 |
+| B0008265 | 0.493 | 3 | 0.263 | 0.628 | 0.327 | 0.686 |
+| B0088702 | 0.494 | 3 | 0.284 | 0.619 | 0.327 | 0.685 |
+| B0131750 | 0.496 | 3 | 0.260 | 0.639 | 0.327 | 0.685 |
+| B0007165 | 0.496 | 3 | 0.264 | 0.614 | 0.327 | 0.719 |
+| B0162320 | 0.500 | 3 | 0.279 | 0.615 | 0.327 | 0.719 |
+| B0032854 | 0.501 | 3 | 0.267 | 0.648 | 0.327 | 0.689 |
+| B0121526 | 0.501 | 3 | 0.279 | 0.621 | 0.327 | 0.719 |
+| B0051113 | 0.502 | 3 | 0.265 | 0.655 | 0.327 | 0.684 |
 
 
 ---
@@ -320,7 +320,7 @@ The structural susceptibility model shows **differential performance across fire
   on this event, where fire spread was primarily driven by terrain and fuel structure —
   exactly the features the structural layer captures.
 
-- **Mati 2018** (AUC = 0.478): The model struggles on
+- **Mati 2018** (AUC = 0.451): The model struggles on
   wind-driven events where acute meteorological conditions override structural risk factors.
 
 - **Acharnes 2021** (AUC = 0.235): Out-of-distribution. The model is inverted

@@ -6,9 +6,9 @@
 [![LightGBM](https://img.shields.io/badge/model-LightGBM-green.svg)](https://lightgbm.readthedocs.io/)
 [![DuckDB](https://img.shields.io/badge/storage-DuckDB-orange.svg)](https://duckdb.org/)
 
-A reproducible geospatial data pipeline that scores **84,767 buildings** in the Athens wildland-urban interface (WUI) for wildfire risk using a **two-layer architecture** — structural susceptibility plus event-context dynamics — validated against **four historical fires** with LightGBM and SHAP explainability.
+A reproducible geospatial data pipeline that scores **169,855 buildings** in the Athens wildland-urban interface (WUI) for wildfire risk using a **two-layer architecture** — structural susceptibility plus event-context dynamics — validated against **four historical fires** with LightGBM and SHAP explainability.
 
-> **[Live Demo: Interactive Risk Map](https://trouties.github.io/wildfire-risk-eu-pipeline/)** — 84K buildings color-coded by risk class on an interactive Folium map
+> **[Live Demo: Interactive Risk Map](https://trouties.github.io/wildfire-risk-eu-pipeline/)** — 170K buildings color-coded by risk class on an interactive Folium map
 
 | | |
 |---|---|
@@ -219,7 +219,7 @@ Note: Fire history features dominate the full-data SHAP model but are excluded f
 |-------------|------|-------------|
 | Risk table (CSV) | `outputs/tables/risk_scores_attica.csv` | Per-building v1 scores + risk class (generated, not committed) |
 | Risk table (Parquet) | `outputs/tables/risk_scores_attica.parquet` | Same, Parquet format (generated, not committed) |
-| Risk map | [Live Demo](https://trouties.github.io/wildfire-risk-eu-pipeline/) | Interactive Folium map — 84K buildings color-coded by risk class |
+| Risk map | [Live Demo](https://trouties.github.io/wildfire-risk-eu-pipeline/) | Interactive Folium map — 170K buildings color-coded by risk class |
 | Validation report | [`outputs/reports/validation_report.md`](outputs/reports/validation_report.md) | Multi-event AUC-ROC, lift, failure analysis |
 | Executive memo | [`outputs/summaries/executive_memo.md`](outputs/summaries/executive_memo.md) | 1-page underwriter summary |
 | v2 model metrics | [`outputs/validation/v2_model_metrics.json`](outputs/validation/v2_model_metrics.json) | LightGBM LOEO AUC per event |
