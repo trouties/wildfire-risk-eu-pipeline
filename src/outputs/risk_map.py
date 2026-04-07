@@ -18,12 +18,10 @@ Output: outputs/maps/wildfire_risk_map.html
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import duckdb
 import folium
-import pandas as pd
 import yaml
 from pyproj import Transformer
 from shapely import wkt as shapely_wkt
