@@ -300,4 +300,4 @@ wildfire-risk-eu/
 
 ---
 
-*WildfireRisk-EU v2.1.0 | MIT License*
+*WildfireRisk-EU v2.2.0 | MIT License*

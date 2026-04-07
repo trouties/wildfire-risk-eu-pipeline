@@ -4,7 +4,7 @@
 
 project:
   name: WildfireRisk-EU
-  version: "2.1.0"
+  version: "2.2.0"
   description: "Asset-level wildfire exposure intelligence for Mediterranean WUI"
 
 # ── Area of Interest ───────────────────────────────────────────────────────────
