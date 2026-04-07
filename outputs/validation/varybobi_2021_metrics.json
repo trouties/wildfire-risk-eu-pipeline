@@ -8,90 +8,90 @@
     38.25
   ],
   "population": {
-    "n_buildings": 28779,
-    "n_burned": 3178,
-    "n_unburned": 25601,
-    "prevalence": 0.11042774245109281
+    "n_buildings": 50638,
+    "n_burned": 3279,
+    "n_unburned": 47359,
+    "prevalence": 0.06475374224890398
   },
   "model": {
-    "auc_roc": 0.6249984421087232,
-    "auc_roc_ci_lower": 0.6157758040606711,
-    "auc_roc_ci_upper": 0.6335864856699841,
-    "lift_at_top10pct": 1.003741082170639,
-    "precision_cls5": 0.16197564276048715,
-    "recall_cls45": 0.6419131529263687,
-    "n_cls5": 7390
+    "auc_roc": 0.7479326620055472,
+    "auc_roc_ci_lower": 0.7407251630935532,
+    "auc_roc_ci_upper": 0.7551888909297388,
+    "lift_at_top10pct": 2.0676219053028824,
+    "precision_cls5": 0.138907484268309,
+    "recall_cls45": 0.8746569075937786,
+    "n_cls5": 14938
   },
   "baseline": {
     "name": "dist_to_forest_naive",
-    "auc_roc": 0.5433989854323706,
-    "auc_roc_ci_lower": 0.5321594325173854,
-    "auc_roc_ci_upper": 0.5543199054425026,
-    "lift_at_top10pct": 1.1705068419043188
+    "auc_roc": 0.6288532149824998,
+    "auc_roc_ci_lower": 0.6180572053695945,
+    "auc_roc_ci_upper": 0.6392702310363904,
+    "lift_at_top10pct": 1.8754977459605793
   },
   "model_vs_baseline": {
-    "auc_roc_delta": 0.0815994566763526,
-    "lift_delta": -0.1667657597336798
+    "auc_roc_delta": 0.1190794470230474,
+    "lift_delta": 0.1921241593423031
   },
   "class_stats": {
     "1": {
-      "n_buildings": 5085,
-      "n_burned": 164,
-      "burned_rate": 0.032251720747295966
+      "n_buildings": 683,
+      "n_burned": 0,
+      "burned_rate": 0.0
     },
     "2": {
-      "n_buildings": 5611,
-      "n_burned": 532,
-      "burned_rate": 0.09481375868829085
+      "n_buildings": 9255,
+      "n_burned": 2,
+      "burned_rate": 0.00021609940572663426
     },
     "3": {
-      "n_buildings": 4880,
-      "n_burned": 442,
-      "burned_rate": 0.09057377049180328
+      "n_buildings": 13337,
+      "n_burned": 409,
+      "burned_rate": 0.030666566694159108
     },
     "4": {
-      "n_buildings": 5813,
-      "n_burned": 843,
-      "burned_rate": 0.14501978324445208
+      "n_buildings": 12425,
+      "n_burned": 793,
+      "burned_rate": 0.06382293762575453
     },
     "5": {
-      "n_buildings": 7390,
-      "n_burned": 1197,
-      "burned_rate": 0.16197564276048715
+      "n_buildings": 14938,
+      "n_burned": 2075,
+      "burned_rate": 0.138907484268309
     }
   },
   "mean_scores": {
     "burned": {
-      "composite_score": 0.5464764498447883,
-      "score_terrain": 0.5916178623346625,
-      "score_vegetation": 0.6079914551883627,
-      "score_fire_weather": 0.18860825874733383,
-      "score_fire_history": 0.7669307204370063
+      "composite_score": 0.621232546956994,
+      "score_terrain": 0.620443483202594,
+      "score_vegetation": 0.7354952853147573,
+      "score_fire_weather": 0.19858956630176244,
+      "score_fire_history": 0.8732704838299803
     },
     "unburned": {
-      "composite_score": 0.5055467899473455,
-      "score_terrain": 0.5924950479819316,
-      "score_vegetation": 0.5228005664881807,
-      "score_fire_weather": 0.20942080251560505,
-      "score_fire_history": 0.688843854533246
+      "composite_score": 0.5478401778123273,
+      "score_terrain": 0.590894021607093,
+      "score_vegetation": 0.5972446503232424,
+      "score_fire_weather": 0.208498587107694,
+      "score_fire_history": 0.770021215955822
     }
   },
   "geographic_diagnostic": {
     "south": {
       "lat_threshold": 38.15,
-      "n_buildings": 27609,
-      "n_burned": 3098,
-      "prevalence": 0.11220978666376906,
-      "auc_roc_model": 0.6261829743560676,
-      "auc_roc_baseline": 0.5359430723176447
+      "n_buildings": 49392,
+      "n_burned": 3199,
+      "prevalence": 0.06476757369614512,
+      "auc_roc_model": 0.7508827367394559,
+      "auc_roc_baseline": 0.6251088514031676
     },
     "north": {
       "lat_threshold": 38.15,
-      "n_buildings": 1170,
+      "n_buildings": 1246,
       "n_burned": 80,
-      "prevalence": 0.06837606837606838,
-      "auc_roc_model": 0.8388417431192661,
-      "auc_roc_baseline": 0.7867201834862385
+      "prevalence": 0.06420545746388442,
+      "auc_roc_model": 0.8260720411663808,
+      "auc_roc_baseline": 0.7843535591766724
     }
   },
   "thresholds": {

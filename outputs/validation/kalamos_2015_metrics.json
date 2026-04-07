@@ -14,13 +14,13 @@
     "prevalence": 0.030832476875642344
   },
   "model": {
-    "auc_roc": 0.8385648639095087,
-    "auc_roc_ci_lower": 0.7801929373908539,
-    "auc_roc_ci_upper": 0.8900666946950583,
-    "lift_at_top10pct": 3.6404761904761904,
-    "precision_cls5": 0.06793478260869565,
+    "auc_roc": 0.7792152704135737,
+    "auc_roc_ci_lower": 0.6874826054613956,
+    "auc_roc_ci_upper": 0.8576674029295512,
+    "lift_at_top10pct": 3.971428571428571,
+    "precision_cls5": 0.037783375314861464,
     "recall_cls45": 1.0,
-    "n_cls5": 368
+    "n_cls5": 794
   },
   "baseline": {
     "name": "dist_to_forest_naive",
@@ -30,8 +30,8 @@
     "lift_at_top10pct": 2.9785714285714286
   },
   "model_vs_baseline": {
-    "auc_roc_delta": 0.11145281018027586,
-    "lift_delta": 0.6619047619047618
+    "auc_roc_delta": 0.052103216684340925,
+    "lift_delta": 0.9928571428571424
   },
   "class_stats": {
     "1": {
@@ -40,40 +40,40 @@
       "burned_rate": 0.0
     },
     "2": {
-      "n_buildings": 37,
+      "n_buildings": 1,
       "n_burned": 0,
       "burned_rate": 0.0
     },
     "3": {
-      "n_buildings": 159,
+      "n_buildings": 55,
       "n_burned": 0,
       "burned_rate": 0.0
     },
     "4": {
-      "n_buildings": 409,
-      "n_burned": 5,
-      "burned_rate": 0.012224938875305624
+      "n_buildings": 123,
+      "n_burned": 0,
+      "burned_rate": 0.0
     },
     "5": {
-      "n_buildings": 368,
-      "n_burned": 25,
-      "burned_rate": 0.06793478260869565
+      "n_buildings": 794,
+      "n_burned": 30,
+      "burned_rate": 0.037783375314861464
     }
   },
   "mean_scores": {
     "burned": {
-      "composite_score": 0.6463277499262756,
-      "score_terrain": 0.6009758380025557,
-      "score_vegetation": 0.8450455453979487,
-      "score_fire_weather": 0.16928913791408629,
-      "score_fire_history": 0.8706415806546741
+      "composite_score": 0.6928347612966703,
+      "score_terrain": 0.6437312925019772,
+      "score_vegetation": 0.9047804000064807,
+      "score_fire_weather": 0.1808892993332244,
+      "score_fire_history": 0.9359652339900933
     },
     "unburned": {
-      "composite_score": 0.5697410891263017,
-      "score_terrain": 0.6367002429548868,
-      "score_vegetation": 0.6754934969669469,
-      "score_fire_weather": 0.21547215900864147,
-      "score_fire_history": 0.6984222536544087
+      "composite_score": 0.6414867357255033,
+      "score_terrain": 0.660881958080195,
+      "score_vegetation": 0.7967541397794813,
+      "score_fire_weather": 0.2127996980729759,
+      "score_fire_history": 0.8178774449423711
     }
   },
   "geographic_diagnostic": {
@@ -82,7 +82,7 @@
       "n_buildings": 349,
       "n_burned": 24,
       "prevalence": 0.06876790830945559,
-      "auc_roc_model": 0.7026923076923077,
+      "auc_roc_model": 0.7173076923076923,
       "auc_roc_baseline": 0.6615384615384614
     },
     "north": {
@@ -90,7 +90,7 @@
       "n_buildings": 624,
       "n_burned": 6,
       "prevalence": 0.009615384615384616,
-      "auc_roc_model": 0.977076591154261,
+      "auc_roc_model": 0.9600862998921251,
       "auc_roc_baseline": 0.8478964401294499
     }
   },

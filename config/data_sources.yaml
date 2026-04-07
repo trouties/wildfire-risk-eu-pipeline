@@ -31,13 +31,13 @@ buildings:
         bbox: [23.7, 38.1, 24.0, 38.3]
         description: "Varybobi, Tatoi, Agios Stefanos — Parnitha/Penteli forest interface"
         verified_count: 9505   # Overpass count 2026-04-04; 2337 unique after dedup with NE overlap
-      west_attica_north:
-        bbox: [23.4, 38.0, 23.7, 38.3]
-        description: "Vilia, Erythres, Fyli, Dervenochoria — Pateras/Kithairon forest WUI (includes 2021 Vilia fire area)"
+      central_attica_wui:
+        bbox: [23.7, 38.0, 23.8, 38.1]
+        description: "Acharnes, Ano Liosia, Fyli foothills — Acharnes/Varybobi validation overlap zone"
         verified_count: null   # pending download
-      west_attica_south:
-        bbox: [23.4, 37.6, 23.7, 38.0]
-        description: "Megara, Kineta, Agioi Theodoroi — western coastal/mountain WUI (includes 2018 Kineta fire area)"
+      west_attica_wui:
+        bbox: [23.55, 38.0, 23.7, 38.3]
+        description: "Fyli, Erythres — Varybobi bbox western coverage (narrowed from full west Attica)"
         verified_count: null   # pending download
   fallback:
     name: Microsoft Building Footprints (Greece)

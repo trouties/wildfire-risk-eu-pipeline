@@ -2,10 +2,16 @@
 risk_map.py — WildfireRisk-EU Output: Interactive Folium Risk Map
 
 Produces an HTML map with:
-  - All 84,767 buildings colored by risk_class (1=green → 5=red)
+  - All buildings colored by risk_class (1=green → 5=red)
   - Per-event EFFIS fire perimeter overlays for all LOEO validation events
   - Burned buildings per event highlighted with distinct colors
   - Validation bounding boxes per event
+
+Size optimization:
+  Buildings are rendered via injected JavaScript from a compact JSON data
+  array (~25 bytes/building) rather than individual Folium CircleMarker
+  objects (~400 bytes/building).  This reduces a 226K-building map from
+  ~107 MB to ~10-15 MB.
 
 Geometry notes:
   - Buildings: centroid_lat/lon already in WGS84 from DuckDB
@@ -51,7 +57,7 @@ RISK_LABELS = {
     5: "Very High",
 }
 
-# Per-event display config: (burned dot color, perimeter fill, perimeter stroke, bbox color)
+# Per-event display config
 EVENT_STYLES = {
     "kalamos_2015":  {"dot": "#1a237e", "fill": "#3949ab", "stroke": "#1a237e", "label": "Kalamos 2015"},
     "mati_2018":     {"dot": "#000000", "fill": "#ff8c00", "stroke": "#cc4400", "label": "Mati 2018"},
@@ -85,20 +91,22 @@ def main() -> Path:
     events = _load_events()
     con = duckdb.connect(str(DB_PATH), read_only=True)
 
-    # All buildings with scores (round coords to reduce HTML size)
+    # All buildings with scores (round coords to reduce data size)
     df_all = con.execute("""
         SELECT r.building_id,
-               round(b.centroid_lat, 5) AS centroid_lat,
-               round(b.centroid_lon, 5) AS centroid_lon,
-               r.composite_score, r.risk_class
+               round(b.centroid_lat, 4) AS centroid_lat,
+               round(b.centroid_lon, 4) AS centroid_lon,
+               r.risk_class
         FROM risk_scores r
         JOIN buildings b USING (building_id)
     """).df()
 
     # Burned buildings per event
     df_burned = con.execute("""
-        SELECT v.building_id, v.event_id, b.centroid_lat, b.centroid_lon,
-               v.composite_score, v.risk_class
+        SELECT v.building_id, v.event_id,
+               round(b.centroid_lat, 5) AS centroid_lat,
+               round(b.centroid_lon, 5) AS centroid_lon,
+               v.risk_class
         FROM validation_results v
         JOIN buildings b USING (building_id)
         WHERE v.burned = TRUE
@@ -133,26 +141,47 @@ def main() -> Path:
         prefer_canvas=True,
     )
 
-    # --- Risk class layers (one per class for legend clarity) ---
-    for cls in [5, 4, 3, 2, 1]:
-        df_cls = df_all[df_all["risk_class"] == cls]
-        color = RISK_COLORS[cls]
-        label = RISK_LABELS[cls]
-        layer = folium.FeatureGroup(name=f"Risk Class {cls} — {label}", show=True)
-        for row in df_cls.itertuples(index=False):
-            folium.CircleMarker(
-                location=[row.centroid_lat, row.centroid_lon],
-                radius=2,
-                color=color,
-                fill=True,
-                fill_color=color,
-                fill_opacity=0.7,
-                weight=0,
-            ).add_to(layer)
-        layer.add_to(m)
+    # --- Build compact data arrays for bulk JavaScript rendering ---
+    # Instead of creating 226K+ individual Folium CircleMarker objects
+    # (each ~400 bytes of HTML/JS), we inject a single compact JSON array
+    # and a JavaScript loop that creates CircleMarkers at runtime.
+    # This reduces the HTML from ~107 MB to ~10-15 MB.
 
-    # --- Per-event burned buildings + perimeters + bboxes ---
+    # Group buildings by risk class → list of [lat, lon]
+    buildings_by_class: dict[int, list] = {cls: [] for cls in range(1, 6)}
+    for row in df_all.itertuples(index=False):
+        buildings_by_class[row.risk_class].append([row.centroid_lat, row.centroid_lon])
+
+    # Color map as JSON for JavaScript
+    colors_js = json.dumps({str(k): v for k, v in RISK_COLORS.items()})
+    labels_js = json.dumps({str(k): v for k, v in RISK_LABELS.items()})
+
+    # Build JS code to create all building markers
+    js_parts = []
+    js_parts.append(f"var riskColors = {colors_js};")
+    js_parts.append(f"var riskLabels = {labels_js};")
+
+    for cls in [5, 4, 3, 2, 1]:
+        coords = buildings_by_class[cls]
+        coords_json = json.dumps(coords, separators=(",", ":"))
+        var_name = f"bldgData{cls}"
+        layer_var = f"layer{cls}"
+        js_parts.append(f"var {var_name} = {coords_json};")
+        js_parts.append(f"""
+var {layer_var} = L.featureGroup();
+for (var i = 0; i < {var_name}.length; i++) {{
+  L.circleMarker({var_name}[i], {{
+    radius: 2, color: riskColors["{cls}"], fill: true,
+    fillColor: riskColors["{cls}"], fillOpacity: 0.7, weight: 0
+  }}).addTo({layer_var});
+}}
+{layer_var}.addTo(map);
+layerControl.addOverlay({layer_var}, "Risk Class {cls} — " + riskLabels["{cls}"] + " (" + {var_name}.length.toLocaleString() + ")");
+""")
+
+    # --- Burned buildings per event (few markers, use Folium directly) ---
     legend_events = []
+    burned_js_parts = []
     for event_key, event_cfg in events.items():
         style = EVENT_STYLES.get(event_key, {"dot": "#333", "fill": "#999", "stroke": "#666",
                                               "label": event_key})
@@ -160,24 +189,32 @@ def main() -> Path:
         event_label = style["label"]
         dot_color = style["dot"]
 
-        # Burned buildings layer
         df_evt = df_burned[df_burned["event_id"] == fire_id]
         n_burned = len(df_evt)
-        burned_layer = folium.FeatureGroup(name=f"Burned — {event_label} ({n_burned:,})", show=True)
-        for row in df_evt.itertuples(index=False):
-            folium.CircleMarker(
-                location=[row.centroid_lat, row.centroid_lon],
-                radius=3,
-                color=dot_color,
-                fill=True,
-                fill_color=dot_color,
-                fill_opacity=0.85,
-                weight=1,
-                tooltip=f"{row.building_id} | BURNED ({event_label}) | Class {row.risk_class}",
-            ).add_to(burned_layer)
-        burned_layer.add_to(m)
 
-        # Fire perimeter
+        # Burned buildings as compact JS array
+        burned_coords = []
+        for row in df_evt.itertuples(index=False):
+            burned_coords.append([row.centroid_lat, row.centroid_lon, row.risk_class,
+                                  row.building_id])
+
+        burned_json = json.dumps(burned_coords, separators=(",", ":"))
+        safe_key = event_key.replace("-", "_")
+        burned_js_parts.append(f"""
+var burnedData_{safe_key} = {burned_json};
+var burnedLayer_{safe_key} = L.featureGroup();
+for (var i = 0; i < burnedData_{safe_key}.length; i++) {{
+  var d = burnedData_{safe_key}[i];
+  L.circleMarker([d[0], d[1]], {{
+    radius: 3, color: "{dot_color}", fill: true,
+    fillColor: "{dot_color}", fillOpacity: 0.85, weight: 1
+  }}).bindTooltip(d[3] + " | BURNED ({event_label}) | Class " + d[2]).addTo(burnedLayer_{safe_key});
+}}
+burnedLayer_{safe_key}.addTo(map);
+layerControl.addOverlay(burnedLayer_{safe_key}, "Burned — {event_label} ({n_burned:,})");
+""")
+
+        # Fire perimeter (keep as Folium GeoJson — few objects)
         wkt = perimeters.get(fire_id)
         if wkt:
             try:
@@ -213,9 +250,11 @@ def main() -> Path:
 
         legend_events.append((dot_color, f"Burned — {event_label}"))
 
-    # --- Layer control + legend ---
-    folium.LayerControl(collapsed=False).add_to(m)
+    # --- Layer control (added early so JS can reference it) ---
+    # We add a manual LayerControl via JS since we need to add layers dynamically
+    # Don't use folium.LayerControl — we manage it in JS
 
+    # --- Legend ---
     event_legend_items = "".join(
         f'<span style="color:{c}">&#9679;</span> {lbl}<br>' for c, lbl in legend_events
     )
@@ -237,8 +276,38 @@ def main() -> Path:
     """
     m.get_root().html.add_child(folium.Element(legend_html))
 
+    # --- Inject bulk marker JavaScript ---
+    # Folium assigns a variable name to the map object. We need to find it.
+    # The map variable name is accessible via m.get_name()
+    map_var = m.get_name()
+
+    all_js = "\n".join(js_parts + burned_js_parts)
+    # Replace 'map' with the actual Folium map variable name
+    bulk_js = f"""
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {{
+        // Get reference to the Folium map object
+        var map = {map_var};
+        var layerControl = L.control.layers(null, {{}}, {{collapsed: false}}).addTo(map);
+
+        // Add Folium-managed layers to the layer control
+        map.eachLayer(function(layer) {{
+            if (layer._name) {{
+                layerControl.addOverlay(layer, layer._name);
+            }}
+        }});
+
+        {all_js}
+    }});
+    </script>
+    """
+    m.get_root().html.add_child(folium.Element(bulk_js))
+
     m.save(str(OUT_FILE))
-    print(f"[risk_map] Saved map -> {OUT_FILE}")
+
+    # Report file size
+    size_mb = OUT_FILE.stat().st_size / (1024 * 1024)
+    print(f"[risk_map] Saved map -> {OUT_FILE} ({size_mb:.1f} MB)")
     return OUT_FILE
 
 

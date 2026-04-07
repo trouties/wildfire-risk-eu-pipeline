@@ -64,7 +64,10 @@ score:  ## Stage 4 — Compute risk scores
 	$(PYTHON) -m src.scoring.engine
 
 validate:  ## Stage 5 — Backtest against 4 LOEO events
-	$(PYTHON) -m src.validation.validator
+	$(PYTHON) -m src.validation.validator mati_2018
+	$(PYTHON) -m src.validation.validator varybobi_2021
+	$(PYTHON) -m src.validation.validator kalamos_2015
+	$(PYTHON) -m src.validation.validator acharnes_2021
 
 model:  ## Stage 5b — LightGBM event-context model + SHAP (v2)
 	$(PYTHON) -m src.model.event_model

@@ -27,21 +27,23 @@ The download covers five geographic chunks (defined in config/data_sources.yaml
     Varybobi, Tatoi, Agios Stefanos — Parnitha/Penteli forest interface.
     Also contains the Phase 2 Varybobi 2021 validation area.
 
-  west_attica_north  [23.4, 38.0, 23.7, 38.3]  count TBD
-    Vilia, Erythres, Fyli, Dervenochoria — Pateras/Kithairon forest WUI.
-    Includes the 2021 Vilia wildfire area.
+  central_attica_wui  [23.7, 38.0, 23.8, 38.1]  count TBD
+    Acharnes, Ano Liosia, Fyli foothills — Acharnes/Varybobi validation
+    overlap zone. Required for Acharnes 2021 validation coverage.
 
-  west_attica_south  [23.4, 37.6, 23.7, 38.0]  count TBD
-    Megara, Kineta, Agioi Theodoroi — western coastal/mountain WUI.
-    Includes the 2018 Kineta wildfire area.
+  west_attica_wui  [23.55, 38.0, 23.7, 38.3]  count TBD
+    Fyli, Erythres — Varybobi bbox western coverage. Narrowed from
+    [23.4, 38.0] to exclude Vilia/Dervenochoria (no validation events).
 
 Excluded
 --------
-Central Athens and inner suburbs ([23.7, 37.6, 23.8, 38.1] — Piraeus,
-Peristeri, Ilion, Egaleo, etc.) are not downloaded. They are clearly non-WUI
-and represent ~80% of the total building stock in the AOI. The suburban fringe
-of these areas that abuts forest (e.g., southern Hymettus slopes within Athens
-municipality) is partially captured via the east_attica_ne chunk.
+- Central Athens and inner suburbs ([23.7, 37.6, 23.8, 38.0] — Piraeus,
+  Peristeri, Ilion, Egaleo, etc.) are not downloaded. They are clearly non-WUI
+  and represent ~80% of the total building stock in the AOI.
+- West Attica south ([23.4, 37.6, 23.7, 38.0] — Megara, Kineta) is excluded:
+  ~36K buildings with no validation event coverage and all scored low-risk.
+- Far west Attica north ([23.4, 38.0, 23.55, 38.0] — Vilia, Dervenochoria)
+  is excluded: outside all validation event bboxes.
 
 Column schema (GeoPackage, EPSG:4326)
 --------------------------------------

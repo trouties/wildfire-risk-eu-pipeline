@@ -6,9 +6,9 @@
 [![LightGBM](https://img.shields.io/badge/model-LightGBM-green.svg)](https://lightgbm.readthedocs.io/)
 [![DuckDB](https://img.shields.io/badge/storage-DuckDB-orange.svg)](https://duckdb.org/)
 
-A reproducible geospatial data pipeline that scores **169,855 buildings** in the Athens wildland-urban interface (WUI) for wildfire risk using a **two-layer architecture** — structural susceptibility plus event-context dynamics — validated against **four historical fires** with LightGBM and SHAP explainability.
+A reproducible geospatial data pipeline that scores **226,314 buildings** in the Athens wildland-urban interface (WUI) for wildfire risk using a **two-layer architecture** — structural susceptibility plus event-context dynamics — validated against **four historical fires** with LightGBM and SHAP explainability.
 
-> **[Live Demo: Interactive Risk Map](https://trouties.github.io/wildfire-risk-eu-pipeline/)** — 170K buildings color-coded by risk class on an interactive Folium map
+> **[Live Demo: Interactive Risk Map](https://trouties.github.io/wildfire-risk-eu-pipeline/)** — 226K buildings color-coded by risk class on an interactive Folium map
 
 | | |
 |---|---|
@@ -140,20 +140,21 @@ See `config/data_sources.yaml` for download endpoints and the [Credentials Requi
 
 | Event | Fire type | v1 Structural AUC [95% CI] | v2 LOEO AUC [95% CI] | Δ AUC |
 |-------|-----------|---------------------------|----------------------|-------|
-| Kalamos 2015 | Terrain-driven | 0.839 [0.78, 0.89] | 0.764 [0.69, 0.82] | −0.075 |
-| Mati 2018 | Wind-driven | 0.479 [0.46, 0.49] | **0.628** [0.62, 0.64] | **+0.150** |
-| Varybobi 2021 | Terrain-driven | 0.625 [0.62, 0.63] | 0.492 [0.48, 0.50] | −0.133 |
-| Acharnes 2021 † | Suburban encroachment | 0.235 [0.21, 0.26] | 0.042 [0.03, 0.05] | −0.193 |
-| **Mean (in-distribution)** | | **0.647** | **0.628** | **−0.019** |
+| Kalamos 2015 | Terrain-driven | 0.779 [0.69, 0.86] | 0.373 [0.27, 0.47] | −0.406 |
+| Mati 2018 | Wind-driven | 0.431 [0.42, 0.45] | **0.715** [0.70, 0.73] | **+0.283** |
+| Varybobi 2021 | Terrain-driven | 0.748 [0.74, 0.76] | 0.435 [0.42, 0.45] | −0.313 |
+| Acharnes 2021 † | Suburban encroachment | 0.502 [0.49, 0.52] | **0.737** [0.73, 0.74] | **+0.235** |
+| **Mean (in-distribution)** | | **0.653** | **0.508** | **−0.145** |
 
 † Acharnes 2021 is an **out-of-distribution exploratory event** — suburban encroachment fire type not represented in the feature space. Excluded from aggregate metrics. See [Limitations](#limitations).
 
 ### Interpretation
 
-- **Kalamos 2015** (AUC 0.84): Best-performing event. Terrain/fuel-driven fire in low-density rural area — exactly the scenario the structural layer was designed for.
-- **Mati 2018** (v2 AUC 0.63): v2 dynamic layer improves discrimination by +0.15 on this wind-driven event, partially compensating for structural model's blind spot.
-- **Varybobi 2021** (v2 AUC 0.49): v2 LOEO degrades from the earlier 2-event estimate (0.712) due to OOD training contamination from Acharnes — the LightGBM model learns suburban-fire patterns that mislead predictions on terrain-driven fires. The 4-event result is more conservative and honest.
-- **Acharnes 2021** (AUC 0.24): Model is inverted — fire spreads from wildland into low-vegetation suburban zone, but model assigns high risk to forest-adjacent buildings. This identifies suburban encroachment as a model boundary requiring v3 features.
+- **Kalamos 2015** (v1 AUC 0.78): Best-performing structural event. Terrain/fuel-driven fire in low-density rural area — exactly the scenario the structural layer was designed for. v2 degrades (0.37) due to OOD training contamination from Acharnes suburban patterns.
+- **Mati 2018** (v2 AUC 0.72): v2 dynamic layer improves discrimination by +0.28, the largest gain across all events. Wind speed and VPD features capture the acute meteorological conditions that v1 structural features miss.
+- **Varybobi 2021** (v1 AUC 0.75): Structural model passes the 0.70 target. v2 degrades (0.44) — same OOD contamination pattern as Kalamos.
+- **Acharnes 2021** (v2 AUC 0.74): v2 dynamic layer dramatically improves from v1 chance-level (0.50) to a passing score. The expanded building coverage (60K buildings) provides sufficient suburban training data for the LightGBM model.
+- **Layer complementarity**: v1 excels on terrain-driven fires (Kalamos, Varybobi); v2 excels on wind-driven and suburban fires (Mati, Acharnes). Neither layer dominates across all fire types, motivating fire-type-aware model selection in v3.
 - **Leakage mitigation**: Fire history features excluded from LOEO due to temporal leakage (test event's own perimeter included in feature computation). See [docs/leakage_audit.md](docs/leakage_audit.md) for a per-feature audit of all 26 features.
 
 ### ROC Curves (Leave-One-Event-Out)
@@ -167,12 +168,12 @@ See `config/data_sources.yaml` for download endpoints and the [Credentials Requi
 
 ### Applicability Boundaries
 
-| Fire type | Model performance | Root cause |
-|-----------|-------------------|------------|
-| Terrain/fuel-driven (Kalamos) | PASS (AUC > 0.70) | Vegetation + fire history features align with fire spread |
-| Wind-driven (Mati) | FAIL (v1) / WARN (v2) | Wind-driven ember transport overrides structural factors; v2 dynamic layer partially compensates |
-| Terrain-driven large (Varybobi) | WARN (v1) / FAIL (v2 4-event) | v1 captures structural signal; v2 LOEO contaminated by OOD training data |
-| Suburban encroachment (Acharnes) | FAIL (both layers) | Fire spreads into low-vegetation built-up area; outside model design envelope |
+| Fire type | v1 Structural | v2 Dynamic | Root cause |
+|-----------|---------------|------------|------------|
+| Terrain/fuel-driven (Kalamos) | PASS (0.78) | FAIL (0.37) | v1 vegetation/terrain features align; v2 contaminated by suburban training data |
+| Wind-driven (Mati) | FAIL (0.43) | PASS (0.72) | v2 wind/VPD features capture acute conditions; v1 structural features insufficient |
+| Terrain-driven large (Varybobi) | PASS (0.75) | FAIL (0.44) | v1 captures structural signal; v2 OOD contamination from Acharnes |
+| Suburban encroachment (Acharnes) | FAIL (0.50) | PASS (0.74) | v2 learns suburban fire patterns from expanded training data |
 
 ### Weight Sensitivity Analysis
 
@@ -186,9 +187,9 @@ Monte Carlo perturbation (±20%) of structural layer weights confirms score stab
 
 | Metric | Model | Baseline (dist-to-forest) |
 |--------|-------|----------|
-| Full-bbox AUC-ROC | 0.48 | 0.60 |
-| South sub-zone AUC-ROC | 0.75 | 0.55 |
-| Recall (risk classes 4+5) | 78% | -- |
+| Full-bbox AUC-ROC | 0.43 | 0.60 |
+| South sub-zone AUC-ROC | 0.79 | 0.55 |
+| Recall (risk classes 4+5) | 96% | -- |
 
 ---
 
@@ -200,9 +201,9 @@ v2 includes SHAP (SHapley Additive exPlanations) via TreeExplainer for the Light
 - **Beeswarm plot** — per-feature SHAP value distributions showing direction and magnitude of impact
 
 **Top SHAP features** (mean |SHAP|, full-data model with all 26 features):
-1. `dist_to_nearest_fire_m` (1.95) — proximity to historical fires
-2. `elevation_m` (1.25) — terrain elevation
-3. `firms_hotspot_count_5km` (0.97) — satellite hotspot density
+1. `dist_to_nearest_fire_m` (1.31) — proximity to historical fires
+2. `elevation_m` (0.90) — terrain elevation
+3. `firms_hotspot_count_5km` (0.66) — satellite hotspot density
 
 Note: Fire history features dominate the full-data SHAP model but are excluded from LOEO evaluation due to temporal leakage (see Validation Results). Dynamic features rank lower due to ERA5 9km resolution limiting between-building variability.
 
@@ -219,7 +220,7 @@ Note: Fire history features dominate the full-data SHAP model but are excluded f
 |-------------|------|-------------|
 | Risk table (CSV) | `outputs/tables/risk_scores_attica.csv` | Per-building v1 scores + risk class (generated, not committed) |
 | Risk table (Parquet) | `outputs/tables/risk_scores_attica.parquet` | Same, Parquet format (generated, not committed) |
-| Risk map | [Live Demo](https://trouties.github.io/wildfire-risk-eu-pipeline/) | Interactive Folium map — 170K buildings color-coded by risk class |
+| Risk map | [Live Demo](https://trouties.github.io/wildfire-risk-eu-pipeline/) | Interactive Folium map — 226K buildings color-coded by risk class |
 | Validation report | [`outputs/reports/validation_report.md`](outputs/reports/validation_report.md) | Multi-event AUC-ROC, lift, failure analysis |
 | Executive memo | [`outputs/summaries/executive_memo.md`](outputs/summaries/executive_memo.md) | 1-page underwriter summary |
 | v2 model metrics | [`outputs/validation/v2_model_metrics.json`](outputs/validation/v2_model_metrics.json) | LightGBM LOEO AUC per event |
@@ -278,7 +279,7 @@ wildfire-risk-eu/
 
 ## Limitations
 
-- **Suburban encroachment blind spot** — fires spreading from wildland into low-vegetation built-up areas (Acharnes archetype, AUC 0.24) are outside the model's design envelope
+- **Fire-type specialization** — v1 structural layer excels on terrain-driven fires but fails on wind/suburban events; v2 dynamic layer shows the reverse. Neither layer generalizes across all fire types without fire-type-aware model selection
 - **Proxy perimeters** — all 4 events use circular literature-proxy perimeters, not actual fire boundaries (EMS fallback in config is documentation-only, not implemented)
 - **ERA5 resolution** — ~9km grid; buildings in the same cell receive identical dynamic feature values
 - **Fire history leakage** — fire history features include post-event data and are excluded from LOEO to mitigate leakage; full per-event temporal cutoff deferred to v3 (see [docs/leakage_audit.md](docs/leakage_audit.md))
