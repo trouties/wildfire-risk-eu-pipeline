@@ -1,15 +1,15 @@
 """
-risk_map.py — WildfireRisk-EU Output: Interactive Folium Risk Map (Task T12)
+risk_map.py — WildfireRisk-EU Output: Interactive Folium Risk Map
 
 Produces an HTML map with:
   - All 84,767 buildings colored by risk_class (1=green → 5=red)
-  - Mati 2018 EFFIS fire perimeter overlay (orange polygon)
-  - Burned buildings highlighted in black
-  - Validation bounding box outline
+  - Per-event EFFIS fire perimeter overlays for all LOEO validation events
+  - Burned buildings per event highlighted with distinct colors
+  - Validation bounding boxes per event
 
 Geometry notes:
   - Buildings: centroid_lat/lon already in WGS84 from DuckDB
-  - EFFIS perimeter: WKT stored in EPSG:2100 (Greek Grid); converted to
+  - EFFIS perimeters: WKT stored in EPSG:2100 (Greek Grid); converted to
     WGS84 via pyproj before passing to Folium
 
 Output: outputs/maps/wildfire_risk_map.html
@@ -24,6 +24,7 @@ from pathlib import Path
 import duckdb
 import folium
 import pandas as pd
+import yaml
 from pyproj import Transformer
 from shapely import wkt as shapely_wkt
 from shapely.geometry import mapping
@@ -33,9 +34,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = PROJECT_ROOT / "data" / "wildfire_risk.duckdb"
 OUT_DIR = PROJECT_ROOT / "outputs" / "maps"
 OUT_FILE = OUT_DIR / "wildfire_risk_map.html"
-
-# Validation bounding box [west, south, east, north] in WGS84
-VALIDATION_BBOX = [23.85, 37.98, 24.10, 38.12]
+CONFIG_PATH = PROJECT_ROOT / "config" / "validation.yaml"
 
 # Risk class colours (green→red)
 RISK_COLORS = {
@@ -54,6 +53,14 @@ RISK_LABELS = {
     5: "Very High",
 }
 
+# Per-event display config: (burned dot color, perimeter fill, perimeter stroke, bbox color)
+EVENT_STYLES = {
+    "kalamos_2015":  {"dot": "#1a237e", "fill": "#3949ab", "stroke": "#1a237e", "label": "Kalamos 2015"},
+    "mati_2018":     {"dot": "#000000", "fill": "#ff8c00", "stroke": "#cc4400", "label": "Mati 2018"},
+    "varybobi_2021": {"dot": "#6a1b9a", "fill": "#ab47bc", "stroke": "#6a1b9a", "label": "Varybobi 2021"},
+    "acharnes_2021": {"dot": "#bf360c", "fill": "#ff7043", "stroke": "#bf360c", "label": "Acharnes 2021"},
+}
+
 
 # ---------- helpers ----------------------------------------------------------
 
@@ -65,24 +72,11 @@ def _epsg2100_to_wgs84_geojson(wkt_str: str) -> dict:
     return json.loads(json.dumps(mapping(geom_wgs84)))
 
 
-def _buildings_geojson(df: pd.DataFrame) -> dict:
-    """Convert a DataFrame with centroid_lat/lon to a GeoJSON FeatureCollection."""
-    features = []
-    for row in df.itertuples(index=False):
-        features.append({
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [row.centroid_lon, row.centroid_lat],
-            },
-            "properties": {
-                "building_id": row.building_id,
-                "risk_class": int(row.risk_class),
-                "composite_score": round(float(row.composite_score), 3),
-                "burned": bool(getattr(row, "burned", False)),
-            },
-        })
-    return {"type": "FeatureCollection", "features": features}
+def _load_events() -> dict:
+    """Load event definitions from validation config."""
+    with open(CONFIG_PATH) as f:
+        cfg = yaml.safe_load(f)
+    return cfg.get("holdout_events", {})
 
 
 # ---------- main -------------------------------------------------------------
@@ -90,6 +84,7 @@ def _buildings_geojson(df: pd.DataFrame) -> dict:
 def main() -> Path:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    events = _load_events()
     con = duckdb.connect(str(DB_PATH), read_only=True)
 
     # All buildings with scores
@@ -100,34 +95,40 @@ def main() -> Path:
         JOIN buildings b USING (building_id)
     """).df()
 
-    # Burned buildings (from validation results)
+    # Burned buildings per event
     df_burned = con.execute("""
-        SELECT v.building_id, b.centroid_lat, b.centroid_lon,
+        SELECT v.building_id, v.event_id, b.centroid_lat, b.centroid_lon,
                v.composite_score, v.risk_class
         FROM validation_results v
         JOIN buildings b USING (building_id)
         WHERE v.burned = TRUE
     """).df()
 
-    # Mati 2018 perimeter WKT
-    mati_row = con.execute(
-        "SELECT geometry FROM effis_perimeters WHERE fire_id = 'EFFIS_20180723_009'"
-    ).fetchone()
+    # EFFIS perimeters for validation events
+    event_fire_ids = {k: v["fire_id"] for k, v in events.items()}
+    fire_id_list = ", ".join(f"'{fid}'" for fid in event_fire_ids.values())
+    perimeters = {}
+    for row in con.execute(
+        f"SELECT fire_id, geometry FROM effis_perimeters WHERE fire_id IN ({fire_id_list})"
+    ).fetchall():
+        perimeters[row[0]] = row[1]
+
     con.close()
 
-    if mati_row is None:
-        sys.exit("ERROR risk_map: Mati perimeter not found in effis_perimeters")
+    total_burned = len(df_burned)
+    print(f"[risk_map] Loaded {len(df_all):,} buildings, {total_burned:,} burned across {len(events)} events")
 
-    mati_wkt = mati_row[0]
+    # --- Compute map center from all validation bboxes ---
+    all_bboxes = [v["validation_bbox"] for v in events.values() if "validation_bbox" in v]
+    if all_bboxes:
+        center_lat = sum((b[1] + b[3]) / 2 for b in all_bboxes) / len(all_bboxes)
+        center_lon = sum((b[0] + b[2]) / 2 for b in all_bboxes) / len(all_bboxes)
+    else:
+        center_lat, center_lon = 38.05, 23.85
 
-    print(f"[risk_map] Loaded {len(df_all):,} buildings, {len(df_burned):,} burned")
-
-    # --- Build map ---
-    center_lat = (VALIDATION_BBOX[1] + VALIDATION_BBOX[3]) / 2
-    center_lon = (VALIDATION_BBOX[0] + VALIDATION_BBOX[2]) / 2
     m = folium.Map(
         location=[center_lat, center_lon],
-        zoom_start=12,
+        zoom_start=11,
         tiles="CartoDB positron",
         prefer_canvas=True,
     )
@@ -151,53 +152,75 @@ def main() -> Path:
             ).add_to(layer)
         layer.add_to(m)
 
-    # --- Burned buildings overlay (black) ---
-    burned_layer = folium.FeatureGroup(name="Burned buildings (Mati 2018)", show=True)
-    for row in df_burned.itertuples(index=False):
-        folium.CircleMarker(
-            location=[row.centroid_lat, row.centroid_lon],
-            radius=3,
-            color="#000000",
-            fill=True,
-            fill_color="#000000",
-            fill_opacity=0.85,
-            weight=1,
-            tooltip=f"{row.building_id} | BURNED | Class {row.risk_class}",
-        ).add_to(burned_layer)
-    burned_layer.add_to(m)
+    # --- Per-event burned buildings + perimeters + bboxes ---
+    legend_events = []
+    for event_key, event_cfg in events.items():
+        style = EVENT_STYLES.get(event_key, {"dot": "#333", "fill": "#999", "stroke": "#666",
+                                              "label": event_key})
+        fire_id = event_cfg["fire_id"]
+        event_label = style["label"]
+        dot_color = style["dot"]
 
-    # --- Mati 2018 perimeter (EPSG:2100 → WGS84) ---
-    try:
-        mati_geojson = _epsg2100_to_wgs84_geojson(mati_wkt)
-        folium.GeoJson(
-            {"type": "Feature", "geometry": mati_geojson, "properties": {}},
-            name="Mati 2018 fire perimeter",
-            style_function=lambda _: {
-                "fillColor": "#ff8c00",
-                "color": "#cc4400",
-                "weight": 2.5,
-                "fillOpacity": 0.15,
-            },
-            tooltip="Mati 2018 fire perimeter (EFFIS_20180723_009)",
-        ).add_to(m)
-    except Exception as exc:
-        print(f"[risk_map] WARNING: could not render Mati perimeter: {exc}")
+        # Burned buildings layer
+        df_evt = df_burned[df_burned["event_id"] == fire_id]
+        n_burned = len(df_evt)
+        burned_layer = folium.FeatureGroup(name=f"Burned — {event_label} ({n_burned:,})", show=True)
+        for row in df_evt.itertuples(index=False):
+            folium.CircleMarker(
+                location=[row.centroid_lat, row.centroid_lon],
+                radius=3,
+                color=dot_color,
+                fill=True,
+                fill_color=dot_color,
+                fill_opacity=0.85,
+                weight=1,
+                tooltip=f"{row.building_id} | BURNED ({event_label}) | Class {row.risk_class}",
+            ).add_to(burned_layer)
+        burned_layer.add_to(m)
 
-    # --- Validation bounding box ---
-    west, south, east, north = VALIDATION_BBOX
-    folium.Rectangle(
-        bounds=[[south, west], [north, east]],
-        color="#2255aa",
-        weight=2,
-        fill=False,
-        dash_array="8 4",
-        tooltip="Validation bounding box",
-    ).add_to(m)
+        # Fire perimeter
+        wkt = perimeters.get(fire_id)
+        if wkt:
+            try:
+                geojson = _epsg2100_to_wgs84_geojson(wkt)
+                fill_c = style["fill"]
+                stroke_c = style["stroke"]
+                folium.GeoJson(
+                    {"type": "Feature", "geometry": geojson, "properties": {}},
+                    name=f"{event_label} perimeter",
+                    style_function=lambda _, fc=fill_c, sc=stroke_c: {
+                        "fillColor": fc,
+                        "color": sc,
+                        "weight": 2.5,
+                        "fillOpacity": 0.15,
+                    },
+                    tooltip=f"{event_label} fire perimeter ({fire_id})",
+                ).add_to(m)
+            except Exception as exc:
+                print(f"[risk_map] WARNING: could not render {event_label} perimeter: {exc}")
+
+        # Validation bbox
+        bbox = event_cfg.get("validation_bbox")
+        if bbox:
+            west, south, east, north = bbox
+            folium.Rectangle(
+                bounds=[[south, west], [north, east]],
+                color=style["stroke"],
+                weight=2,
+                fill=False,
+                dash_array="8 4",
+                tooltip=f"{event_label} validation bbox",
+            ).add_to(m)
+
+        legend_events.append((dot_color, f"Burned — {event_label}"))
 
     # --- Layer control + legend ---
     folium.LayerControl(collapsed=False).add_to(m)
 
-    legend_html = """
+    event_legend_items = "".join(
+        f'<span style="color:{c}">&#9679;</span> {lbl}<br>' for c, lbl in legend_events
+    )
+    legend_html = f"""
     <div style="position:fixed; bottom:30px; left:30px; z-index:1000;
                 background:white; padding:10px 14px; border-radius:6px;
                 border:1px solid #ccc; font-size:12px; line-height:1.6;">
@@ -207,8 +230,10 @@ def main() -> Path:
       <span style="color:#fee08b">&#9679;</span> 3 — Medium<br>
       <span style="color:#91cf60">&#9679;</span> 2 — Low<br>
       <span style="color:#1a9850">&#9679;</span> 1 — Very Low<br>
-      <span style="color:#000000">&#9679;</span> Burned (Mati 2018)<br>
-      <span style="color:#2255aa">&#9633;</span> Validation bbox
+      <hr style="margin:4px 0">
+      <b>Validation Events</b><br>
+      {event_legend_items}
+      <span style="color:#666">&#9633;</span> Validation bboxes
     </div>
     """
     m.get_root().html.add_child(folium.Element(legend_html))
