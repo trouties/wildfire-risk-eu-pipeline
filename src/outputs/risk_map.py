@@ -85,9 +85,11 @@ def main() -> Path:
     events = _load_events()
     con = duckdb.connect(str(DB_PATH), read_only=True)
 
-    # All buildings with scores
+    # All buildings with scores (round coords to reduce HTML size)
     df_all = con.execute("""
-        SELECT r.building_id, b.centroid_lat, b.centroid_lon,
+        SELECT r.building_id,
+               round(b.centroid_lat, 5) AS centroid_lat,
+               round(b.centroid_lon, 5) AS centroid_lon,
                r.composite_score, r.risk_class
         FROM risk_scores r
         JOIN buildings b USING (building_id)
@@ -146,7 +148,6 @@ def main() -> Path:
                 fill_color=color,
                 fill_opacity=0.7,
                 weight=0,
-                tooltip=f"{row.building_id} | Class {row.risk_class} | Score {row.composite_score:.2f}",
             ).add_to(layer)
         layer.add_to(m)
 
