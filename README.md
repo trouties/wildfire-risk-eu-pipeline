@@ -8,7 +8,10 @@
 
 A reproducible geospatial data pipeline that scores **84,767 buildings** in the Athens wildland-urban interface (WUI) for wildfire risk using a **two-layer architecture** — structural susceptibility plus event-context dynamics — validated against **four historical fires** with LightGBM and SHAP explainability.
 
-> **[Live Demo: Interactive Risk Map](https://trouties.github.io/wildfire-risk-eu-pipeline/)** — 84K buildings color-coded by risk class on an interactive Folium map
+<p align="center">
+  <a href="https://trouties.github.io/wildfire-risk-eu-pipeline/"><b>▶ Live Demo: Interactive Risk Map</b></a><br>
+  84K buildings color-coded by risk class on an interactive Folium map
+</p>
 
 | | |
 |---|---|
