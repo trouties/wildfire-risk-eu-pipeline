@@ -51,6 +51,7 @@ htmlcov/
 
 # Tool / plugin configs
 .claude/
+CLAUDE.md
 .cursor/
 .aider*
 
