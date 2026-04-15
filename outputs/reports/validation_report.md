@@ -1,16 +1,27 @@
 # Validation Report — WildfireRisk-EU
 
+> **Statistical caveat (read first).** *LOEO with 4 events is minimally viable but
+> not statistically powerful.* The metrics below are illustrative. Per-event AUCs
+> are single observations, the in-distribution / out-of-distribution partition is
+> post-hoc (chosen after inspecting results), and no aggregate survives a standard
+> statistical-significance test. Treat this report as a methodological demonstration.
+
 ### Event Classification
 
-**In-distribution events**: Kalamos 2015 (exploratory), Mati 2018, Varybobi 2021 — terrain- and/or wind-driven fires where the feature space (terrain, vegetation, fire weather, fire history) covers the dominant fire-spread mechanisms.
+**In-distribution events**: Kalamos 2015 (exploratory), Mati 2018, Varybobi 2021 — terrain- and/or wind-driven fires where the feature space (terrain, vegetation, fire weather, fire history) is argued to cover the dominant fire-spread mechanisms.
 
-**Out-of-distribution event**: Acharnes 2021 — suburban encroachment fire type where fire spreads from wildland into low-vegetation built-up areas. Marked as a **model boundary case**; excluded from aggregate AUC calculations.
+**Out-of-distribution event**: Acharnes 2021 — suburban encroachment fire type where fire spreads from wildland into low-vegetation built-up areas. Marked as a model boundary case; excluded from aggregate AUC calculations.
+
+> **Note on OOD labeling.** With only 4 events, any in-/out-of-distribution partition
+> is unavoidably **post-hoc** — it was chosen after observing per-event AUCs. Treat
+> the aggregate metrics computed over the remaining 3 events with corresponding
+> caution.
 
 ## Multi-Event Summary (v1 Structural Layer)
 
 | Metric | Acharnes 2021 | Kalamos 2015 (exploratory) | Mati 2018 | Varybobi 2021 |
 |--------|-----------|-----------|-----------|-----------|
-| AUC-ROC | **0.501** [0.49, 0.51] (FAIL) | **0.779** [0.69, 0.86] (PASS) | **0.431** [0.41, 0.45] (FAIL) | **0.748** [0.74, 0.76] (PASS) |
+| AUC-ROC | 0.501 [0.49, 0.51] | 0.779 [0.69, 0.86] | 0.431 [0.41, 0.45] | 0.748 [0.74, 0.76] |
 | vs Baseline | +0.011 | +0.052 | -0.170 | +0.119 |
 | Lift@top10% | 1.03x | 3.97x | 0.74x | 2.07x |
 | Precision@class5 | 2.2% | 3.8% | 5.2% | 13.9% |
@@ -32,10 +43,11 @@ to prevent temporal leakage). Full feature set for SHAP: 26 features.
 | Varybobi 2021 | 50,638 | 3,279 | 0.748 [0.74, 0.76] | 0.435 [0.42, 0.45] | -0.313 |
 | Kalamos 2015 (exploratory) | 973 | 30 | 0.779 [0.69, 0.86] | 0.373 [0.27, 0.47] | -0.406 |
 | Acharnes 2021 * | 60,351 | 1,838 | 0.501 [0.49, 0.51] | 0.737 [0.73, 0.74] | +0.235 |
-| **Mean (in-distribution)** | — | — | **0.653** | **0.508** | **-0.145** |
+| *Mean over 3 non-Acharnes events — post-hoc grouping* | — | — | *0.653* | *0.508* | *-0.145* |
 
-\* *Excluded from aggregate metrics; suburban encroachment fire type not represented
-in feature space (see Limitations).*
+\* *Labeled out-of-distribution after observing per-event results; the "mean" row is
+computed over the remaining 3 points. With n=4 this post-hoc grouping is
+descriptive, not a sampling distribution.*
 
 
 ---
@@ -48,19 +60,19 @@ in feature space (see Limitations).*
 
 ### Discrimination Metrics
 
-| Metric | Model | Baseline | Status |
-|--------|-------|----------|--------|
-| AUC-ROC | **0.501** [0.49, 0.51] | 0.491 [0.48, 0.50] | FAIL |
-| Lift@top10% | 1.03x | 0.44x | BEAT |
-| Precision@class5 | 2.2% | -- | -- |
-| Recall@class4+5 | 27.0% | -- | -- |
+| Metric | Model | Baseline |
+|--------|-------|----------|
+| AUC-ROC | 0.501 [0.49, 0.51] | 0.491 [0.48, 0.50] |
+| Lift@top10% | 1.03x | 0.44x |
+| Precision@class5 | 2.2% | -- |
+| Recall@class4+5 | 27.0% | -- |
 
 ### Geographic Diagnostic (split at 38.09 N)
 
-| Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) | Status |
-|----------|-----------|--------|-------------|----------------|--------|
-| south | 57,584 | 1,229 | **0.403** | 0.509 | FAIL |
-| north | 2,767 | 609 | **0.213** | 0.176 | FAIL |
+| Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) |
+|----------|-----------|--------|-------------|----------------|
+| south | 57,584 | 1,229 | 0.403 | 0.509 |
+| north | 2,767 | 609 | 0.213 | 0.176 |
 
 ### ROC Curve
 
@@ -116,19 +128,19 @@ in feature space (see Limitations).*
 
 ### Discrimination Metrics
 
-| Metric | Model | Baseline | Status |
-|--------|-------|----------|--------|
-| AUC-ROC | **0.779** [0.69, 0.86] | 0.727 [0.64, 0.80] | PASS |
-| Lift@top10% | 3.97x | 2.98x | BEAT |
-| Precision@class5 | 3.8% | -- | -- |
-| Recall@class4+5 | 100.0% | -- | -- |
+| Metric | Model | Baseline |
+|--------|-------|----------|
+| AUC-ROC | 0.779 [0.69, 0.86] | 0.727 [0.64, 0.80] |
+| Lift@top10% | 3.97x | 2.98x |
+| Precision@class5 | 3.8% | -- |
+| Recall@class4+5 | 100.0% | -- |
 
 ### Geographic Diagnostic (split at 38.17 N)
 
-| Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) | Status |
-|----------|-----------|--------|-------------|----------------|--------|
-| south | 349 | 24 | **0.717** | 0.662 | PASS |
-| north | 624 | 6 | **0.960** | 0.848 | PASS |
+| Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) |
+|----------|-----------|--------|-------------|----------------|
+| south | 349 | 24 | 0.717 | 0.662 |
+| north | 624 | 6 | 0.960 | 0.848 |
 
 ### ROC Curve
 
@@ -184,19 +196,19 @@ in feature space (see Limitations).*
 
 ### Discrimination Metrics
 
-| Metric | Model | Baseline | Status |
-|--------|-------|----------|--------|
-| AUC-ROC | **0.431** [0.41, 0.45] | 0.602 [0.58, 0.62] | FAIL |
-| Lift@top10% | 0.74x | 1.52x | BELOW |
-| Precision@class5 | 5.2% | -- | -- |
-| Recall@class4+5 | 95.7% | -- | -- |
+| Metric | Model | Baseline |
+|--------|-------|----------|
+| AUC-ROC | 0.431 [0.41, 0.45] | 0.602 [0.58, 0.62] |
+| Lift@top10% | 0.74x | 1.52x |
+| Precision@class5 | 5.2% | -- |
+| Recall@class4+5 | 95.7% | -- |
 
 ### Geographic Diagnostic (split at 38.05 N)
 
-| Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) | Status |
-|----------|-----------|--------|-------------|----------------|--------|
-| south | 16,083 | 342 | **0.790** | 0.555 | PASS |
-| north | 4,808 | 849 | **0.164** | 0.578 | FAIL |
+| Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) |
+|----------|-----------|--------|-------------|----------------|
+| south | 16,083 | 342 | 0.790 | 0.555 |
+| north | 4,808 | 849 | 0.164 | 0.578 |
 
 ### ROC Curve
 
@@ -252,19 +264,19 @@ in feature space (see Limitations).*
 
 ### Discrimination Metrics
 
-| Metric | Model | Baseline | Status |
-|--------|-------|----------|--------|
-| AUC-ROC | **0.748** [0.74, 0.76] | 0.629 [0.62, 0.64] | PASS |
-| Lift@top10% | 2.07x | 1.88x | BEAT |
-| Precision@class5 | 13.9% | -- | -- |
-| Recall@class4+5 | 87.5% | -- | -- |
+| Metric | Model | Baseline |
+|--------|-------|----------|
+| AUC-ROC | 0.748 [0.74, 0.76] | 0.629 [0.62, 0.64] |
+| Lift@top10% | 2.07x | 1.88x |
+| Precision@class5 | 13.9% | -- |
+| Recall@class4+5 | 87.5% | -- |
 
 ### Geographic Diagnostic (split at 38.15 N)
 
-| Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) | Status |
-|----------|-----------|--------|-------------|----------------|--------|
-| south | 49,392 | 3,199 | **0.751** | 0.625 | PASS |
-| north | 1,246 | 80 | **0.826** | 0.784 | PASS |
+| Sub-zone | Buildings | Burned | AUC (model) | AUC (baseline) |
+|----------|-----------|--------|-------------|----------------|
+| south | 49,392 | 3,199 | 0.751 | 0.625 |
+| north | 1,246 | 80 | 0.826 | 0.784 |
 
 ### ROC Curve
 
@@ -312,48 +324,44 @@ in feature space (see Limitations).*
 
 ---
 
-## Interpretation
+## Per-event observations (n = 1 each)
 
-The two model layers show **complementary performance across fire types**:
+Each bullet below describes a **single event**. With one observation per layer ×
+event, these are descriptions, not validated generalizations.
 
-- **Kalamos 2015 (exploratory)** (v1 AUC = 0.779, v2 AUC = 0.373): v1 structural layer
-  discriminates effectively on this terrain/fuel-driven fire. v2 degrades due to OOD
-  training contamination from Acharnes suburban patterns.
+- **Kalamos 2015 (exploratory)** (v1 AUC = 0.779, v2 AUC = 0.373) — only 30 burned
+  buildings; the 95% CI on v1 AUC is [0.69, 0.86]. Interpret with caution.
+- **Mati 2018** (v1 AUC = 0.431, v2 AUC = 0.715) — v1 below chance, v2 above 0.70
+  on this one wind-driven event.
+- **Varybobi 2021** (v1 AUC = 0.748, v2 AUC = 0.435) — v1 above 0.70, v2 below
+  chance on this one terrain-driven event.
+- **Acharnes 2021** (v1 AUC = 0.502, v2 AUC = 0.737) — v1 near chance; v2 AUC is
+  higher, **but** per-class burn rates are inverted (Class 5: 2.2%, Class 2: 3.9%,
+  see the Per-Class table above), so the AUC figure masks a calibration problem.
 
-- **Mati 2018** (v1 AUC = 0.431, v2 AUC = 0.715): v2 dynamic layer provides the
-  largest gain (+0.28). Wind speed and VPD features capture the acute meteorological
-  conditions that v1 structural features miss on this wind-driven event.
+**Observation** (not a finding): across these 4 events, v1 is higher on Kalamos and
+Varybobi, v2 is higher on Mati and Acharnes. This is a description of 4 points, not
+a validated "fire-type boundary." Fire-type-aware LOEO or model selection is a v3
+research direction.
 
-- **Varybobi 2021** (v1 AUC = 0.748, v2 AUC = 0.435): v1 passes the 0.70 target
-  with expanded building coverage (50,638 buildings). v2 degrades — same OOD
-  contamination pattern as Kalamos.
+### Observed per-event results (n = 1 each — descriptive, not a boundary)
 
-- **Acharnes 2021** (v1 AUC = 0.502, v2 AUC = 0.737): v2 dramatically improves
-  from chance-level to passing. The expanded building coverage (60,351 buildings,
-  1,838 burned) provides sufficient suburban training data for the LightGBM model.
+| Fire type (n=1) | v1 AUC | v2 AUC | Observation |
+|-----------------|--------|--------|-------------|
+| Terrain/fuel-driven (Kalamos) | 0.779 | 0.373 | v1 higher on this single event; v2 below chance. CI wide (30 burned). |
+| Wind-driven (Mati)            | 0.431 | 0.715 | v2 higher on this single event; v1 below chance. |
+| Terrain-driven large (Varybobi)| 0.748 | 0.435 | v1 higher on this single event; v2 below chance. |
+| Suburban encroachment (Acharnes)| 0.502 | 0.737 | v2 AUC higher, but class-rank inverted (Class 5: 2.2% vs Class 2: 3.9%). |
 
-**Key finding**: v1 excels on terrain-driven fires (Kalamos, Varybobi); v2 excels on
-wind-driven and suburban fires (Mati, Acharnes). Neither layer dominates across all
-fire types, motivating fire-type-aware model selection in v3.
+### v2 Layer Note
 
-### Applicability Boundaries
-
-| Fire type | v1 Structural | v2 Dynamic | Root cause |
-|-----------|---------------|------------|------------|
-| Terrain/fuel-driven (Kalamos) | PASS (0.78) | FAIL (0.37) | v1 vegetation/terrain features align; v2 contaminated by suburban training data |
-| Wind-driven (Mati) | FAIL (0.43) | PASS (0.72) | v2 wind/VPD features capture acute conditions; v1 structural features insufficient |
-| Terrain-driven large (Varybobi) | PASS (0.75) | FAIL (0.44) | v1 captures structural signal; v2 OOD contamination from Acharnes |
-| Suburban encroachment (Acharnes) | FAIL (0.50) | PASS (0.74) | v2 learns suburban fire patterns from expanded training data |
-
-### v2 Layer Complementarity Note
-
-The v2 dynamic layer shows a clear **fire-type specialization** pattern:
-it dramatically improves wind-driven (Mati +0.28) and suburban (Acharnes +0.24)
-events, but degrades terrain-driven events (Kalamos −0.41, Varybobi −0.31).
-This is because the expanded Acharnes building coverage (60K buildings) provides
-substantial suburban fire training data — the LightGBM model learns suburban-fire
-patterns that help Mati/Acharnes but contaminate Kalamos/Varybobi predictions.
-This motivates fire-type-aware LOEO or model selection in v3.
+Across 4 events v2 is higher on Mati (+0.28) and Acharnes (+0.24) and lower on
+Kalamos (−0.41) and Varybobi (−0.31). One hypothesis is that expanded Acharnes
+coverage (60K buildings) gives LightGBM enough suburban training data to help the
+wind/suburban events but distort terrain predictions; another is that the pattern
+is a 4-point coincidence at n=4 and would disappear with more events. **Both
+hypotheses are consistent with the available data.** Fire-type-aware LOEO or model
+selection is a v3 research direction.
 
 ---
 

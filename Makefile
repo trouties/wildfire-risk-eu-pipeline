@@ -73,6 +73,7 @@ model:  ## Stage 5b — LightGBM event-context model + SHAP (v2)
 	$(PYTHON) -m src.model.event_model
 
 outputs:  ## Stage 6 — Generate deliverables
+	@mkdir -p outputs/tables outputs/maps outputs/reports outputs/summaries
 	$(PYTHON) -m src.outputs.result_table
 	$(PYTHON) -m src.outputs.risk_map
 	$(PYTHON) -m src.outputs.validation_report

@@ -6,20 +6,22 @@
 [![LightGBM](https://img.shields.io/badge/model-LightGBM-green.svg)](https://lightgbm.readthedocs.io/)
 [![DuckDB](https://img.shields.io/badge/storage-DuckDB-orange.svg)](https://duckdb.org/)
 
-A reproducible geospatial data pipeline that scores **226,314 buildings** in the Athens wildland-urban interface (WUI) for wildfire risk using a **two-layer architecture** — structural susceptibility plus event-context dynamics — validated against **four historical fires** with LightGBM and SHAP explainability.
+A reproducible geospatial data pipeline that scores **226,314 buildings** in the Athens wildland-urban interface (WUI) for wildfire risk using a **two-layer architecture** — structural susceptibility plus event-context dynamics — evaluated against **four historical fires** via leave-one-event-out cross-validation. With n=4, results constitute a **methodological demonstration**, not a statistically powered validation or a production-ready underwriting model. See the [Statistical caveat](#statistical-caveat) and [Limitations](#limitations) before reading the numbers below.
 
 > **[Live Demo: Interactive Risk Map](https://trouties.github.io/wildfire-risk-eu-pipeline/)** — 226K buildings color-coded by risk class on an interactive Folium map
 
 | | |
 |---|---|
 | **Stakeholder** | Re/insurance portfolio underwriter assessing European wildfire exposure |
-| **AOI** | Attica Region, Greece (2,500 km² · EPSG:2100) |
+| **AOI** | Attica WUI subset — effective bbox `[23.4, 37.6, 24.2, 38.3]`, WUI-filtered to 226,314 buildings (dense central Athens excluded); working CRS EPSG:2100. The *administrative* Attica region is ~3,808 km²; this project covers the WUI bbox, not the full admin area. |
 | **Validation** | Leave-one-event-out against 4 Attica fires (Kalamos 2015, Mati 2018, Varybobi 2021, Acharnes 2021) |
 | **Key Outputs** | [Executive Memo](outputs/summaries/executive_memo.md) · [Validation Report](outputs/reports/validation_report.md) · [Interactive Map](https://trouties.github.io/wildfire-risk-eu-pipeline/) |
 
 ---
 
-## v2 Architecture
+## v2 Architecture — a methodological experiment
+
+> **v2 is an experiment, not a validated deliverable.** It asks: *can ERA5-derived event-day meteorology (~9 km grid) add building-level discrimination beyond v1 structural features?* Across 4 events the result is largely a **negative finding** — mean LOEO AUC ≈ 0.508, effectively chance-level, driven by the structural fact that 226,314 buildings fall into only ~28 ERA5 grid cells (see [ERA5 resolution diagnostic](outputs/reports/validation_report.md#era5-resolution-diagnostic)). The 5 dynamic features therefore cannot distinguish neighboring buildings; they only distinguish between grid cells, which in a cross-event setting collapses to encoding event identity. The architecture below documents what was *built*; the [Validation Results](#validation-results) document what it *does*.
 
 ```
 Layer 1: Structural Susceptibility (v1)
@@ -27,16 +29,19 @@ Layer 1: Structural Susceptibility (v1)
   → terrain, vegetation, fire weather climatology, fire history
   → 21 features → weighted composite index
 
-Layer 2: Event-Context Dynamic (v2)
+Layer 2: Event-Context Dynamic (v2) — experimental
   "Under today's conditions, this building's risk is amplified/dampened"
   → ERA5 hourly wind speed/direction, VPD, antecedent drought, event-day FWI
   → 5 features → LightGBM binary classifier → SHAP explainability
+  → (building-level signal limited by ~9 km ERA5 grid; see caveats below)
 
 Combined: Impact-Priority Score
   → structural × event-context → prioritized risk ranking
 ```
 
 ### Pipeline Stages
+
+Dependency chain matches `make all-v2` (`Makefile:93`): v1 validation runs *before* v2 LightGBM.
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
@@ -45,17 +50,25 @@ Combined: Impact-Priority Score
 │  (structural)│    │              │    │  Features    │    │  (v1 index)  │
 └──────────────┘    └──────────────┘    └──────────────┘    └──────┬───────┘
                                                                    │
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐           ▼
-│  Stage 1b    │    │  Stage 3b    │    │  Stage 5b    │    ┌──────────────┐
-│  Acquire ERA5│───▶│  Dynamic     │───▶│  LightGBM    │───▶│  Stage 5     │
-│  (hourly)    │    │  Features    │    │  + SHAP      │    │  Validation  │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────┬───────┘
-                                                                   │
-                                                                   ▼
-                                                            ┌──────────────┐
-                                                            │  Stage 6     │
-                                                            │  Outputs     │
-                                                            └──────────────┘
+┌──────────────┐    ┌──────────────┐                               ▼
+│  Stage 1b    │    │  Stage 3b    │                       ┌──────────────┐
+│  Acquire ERA5│───▶│  Dynamic     │──────────────────────▶│  Stage 5     │
+│  (hourly)    │    │  Features    │                       │  v1 Validate │
+└──────────────┘    └──────────────┘                       │  (LOEO×4)    │
+                                                           └──────┬───────┘
+                                                                  │
+                                                                  ▼
+                                                           ┌──────────────┐
+                                                           │  Stage 5b    │
+                                                           │  v2 LightGBM │
+                                                           │  + SHAP      │
+                                                           └──────┬───────┘
+                                                                  │
+                                                                  ▼
+                                                           ┌──────────────┐
+                                                           │  Stage 6     │
+                                                           │  Outputs     │
+                                                           └──────────────┘
                                               DuckDB storage
                                            (data/wildfire_risk.duckdb)
 ```
@@ -136,26 +149,30 @@ See `config/data_sources.yaml` for download endpoints and the [Credentials Requi
 
 ## Validation Results
 
+### Statistical caveat
+
+> **Read this before the numbers.** Validation uses **only n=4 events**. With 4 samples the per-event AUCs are single-observation readings, not a sampling distribution; the "in-distribution mean" reported below is computed after *post-hoc* removal of one event (Acharnes) and therefore rests on **3 points**. No metric in this section survives a standard statistical-significance test, and no single 0.70 "threshold" should be read as pass/fail. Treat this entire section as a **method demonstration**, not as evidence of deployability. Kalamos 2015 has only 30 burned buildings (CI [0.69, 0.86]); any strong-sounding generalization from that point is unwarranted.
+
 ### 4 Events × 2 Layers Matrix (Leave-One-Event-Out)
 
 | Event | Fire type | v1 Structural AUC [95% CI] | v2 LOEO AUC [95% CI] | Δ AUC |
 |-------|-----------|---------------------------|----------------------|-------|
 | Kalamos 2015 | Terrain-driven | 0.779 [0.69, 0.86] | 0.373 [0.27, 0.47] | −0.406 |
-| Mati 2018 | Wind-driven | 0.431 [0.42, 0.45] | **0.715** [0.70, 0.73] | **+0.283** |
+| Mati 2018 | Wind-driven | 0.431 [0.42, 0.45] | 0.715 [0.70, 0.73] | +0.283 |
 | Varybobi 2021 | Terrain-driven | 0.748 [0.74, 0.76] | 0.435 [0.42, 0.45] | −0.313 |
-| Acharnes 2021 † | Suburban encroachment | 0.502 [0.49, 0.52] | **0.737** [0.73, 0.74] | **+0.235** |
-| **Mean (in-distribution)** | | **0.653** | **0.508** | **−0.145** |
+| Acharnes 2021 † | Suburban encroachment | 0.502 [0.49, 0.52] | 0.737 [0.73, 0.74] | +0.235 |
+| *Mean over 3 non-Acharnes events (post-hoc)* | | *0.653* | *0.508* | *−0.145* |
 
-† Acharnes 2021 is an **out-of-distribution exploratory event** — suburban encroachment fire type not represented in the feature space. Excluded from aggregate metrics. See [Limitations](#limitations).
+† Acharnes is labeled out-of-distribution *after* observing per-event results. With n=4 this is a **post-hoc choice**, not an a-priori hold-out design; the "in-distribution mean" is an average over the remaining 3 points and should be treated accordingly. The v2 mean ≈ 0.508 is effectively chance-level.
 
-### Interpretation
+### Per-event observations (each row is n=1 — do not generalize)
 
-- **Kalamos 2015** (v1 AUC 0.78): Best-performing structural event. Terrain/fuel-driven fire in low-density rural area — exactly the scenario the structural layer was designed for. v2 degrades (0.37) due to OOD training contamination from Acharnes suburban patterns.
-- **Mati 2018** (v2 AUC 0.72): v2 dynamic layer improves discrimination by +0.28, the largest gain across all events. Wind speed and VPD features capture the acute meteorological conditions that v1 structural features miss.
-- **Varybobi 2021** (v1 AUC 0.75): Structural model passes the 0.70 target. v2 degrades (0.44) — same OOD contamination pattern as Kalamos.
-- **Acharnes 2021** (v2 AUC 0.74): v2 dynamic layer dramatically improves from v1 chance-level (0.50) to a passing score. The expanded building coverage (60K buildings) provides sufficient suburban training data for the LightGBM model.
-- **Layer complementarity**: v1 excels on terrain-driven fires (Kalamos, Varybobi); v2 excels on wind-driven and suburban fires (Mati, Acharnes). Neither layer dominates across all fire types, motivating fire-type-aware model selection in v3.
-- **Leakage mitigation**: Fire history features excluded from LOEO due to temporal leakage (test event's own perimeter included in feature computation). See [docs/leakage_audit.md](docs/leakage_audit.md) for a per-feature audit of all 26 features.
+- **Kalamos 2015** — v1 AUC 0.779 with only 30 burned buildings; the 95% CI [0.69, 0.86] is wide. v2 AUC 0.373 is below chance. A single very small event cannot support a "v1 is good on terrain fires" claim.
+- **Mati 2018** — v2 AUC 0.715 on a single wind-driven event; v1 AUC 0.431 is below chance here. Interesting as a case study, but n=1 — do not generalize to "v2 is better on wind-driven fires."
+- **Varybobi 2021** — v1 AUC 0.748 exceeds the 0.70 reference, v2 AUC 0.435. Again, one event.
+- **Acharnes 2021** — v1 AUC 0.502, v2 AUC 0.737. Note: at Acharnes the per-class burn rate is **inverted** — Class 5 ("Very High") has a 2.2% burn rate while Class 2 ("Low") has 3.9% (see `outputs/reports/validation_report.md`). The AUC number masks this miscalibration.
+- **Layer "complementarity"** — with n=1 per (layer × fire-type) cell, the pattern ("v1 wins terrain, v2 wins wind/suburban") is a *description* of these 4 points, not a validated boundary. Fire-type-aware model selection is a v3 research direction, not an established result.
+- **Leakage status** — fire-history features are excluded from LOEO. **FWI / fire-weather climatology cutoffs are defined in `config/validation.yaml` but not yet enforced in `src/features/fire_weather.py`** — in particular `fwi_season_max` is not diluted by averaging, so a single event-day extreme enters the feature at full strength. The project is *not* claimed to be leakage-free; see [docs/leakage_audit.md](docs/leakage_audit.md) for the open-mitigation list.
 
 ### ROC Curves (Leave-One-Event-Out)
 
@@ -166,14 +183,16 @@ See `config/data_sources.yaml` for download endpoints and the [Credentials Requi
   <img src="outputs/reports/acharnes_2021_roc_curve.png" alt="Acharnes 2021 ROC" width="24%">
 </p>
 
-### Applicability Boundaries
+### Observed per-event results (n = 1 each — descriptive, not a boundary claim)
 
-| Fire type | v1 Structural | v2 Dynamic | Root cause |
-|-----------|---------------|------------|------------|
-| Terrain/fuel-driven (Kalamos) | PASS (0.78) | FAIL (0.37) | v1 vegetation/terrain features align; v2 contaminated by suburban training data |
-| Wind-driven (Mati) | FAIL (0.43) | PASS (0.72) | v2 wind/VPD features capture acute conditions; v1 structural features insufficient |
-| Terrain-driven large (Varybobi) | PASS (0.75) | FAIL (0.44) | v1 captures structural signal; v2 OOD contamination from Acharnes |
-| Suburban encroachment (Acharnes) | FAIL (0.50) | PASS (0.74) | v2 learns suburban fire patterns from expanded training data |
+| Fire type (n=1) | v1 AUC | v2 AUC | Observation |
+|-----------------|--------|--------|-------------|
+| Terrain/fuel-driven (Kalamos) | 0.779 | 0.373 | v1 higher on this single event; v2 below chance. CI wide (30 burned buildings). |
+| Wind-driven (Mati)            | 0.431 | 0.715 | v2 higher on this single event; v1 below chance. |
+| Terrain-driven large (Varybobi)| 0.748 | 0.435 | v1 higher on this single event; v2 below chance. |
+| Suburban encroachment (Acharnes)| 0.502 | 0.737 | v2 higher on this single event; class ranking is inverted (Class 5 burn rate 2.2% vs Class 2 3.9%). |
+
+With one observation per cell, no column of this table is a "boundary" in any statistical sense. The pattern is a description of 4 events, not evidence that either layer generalizes to unseen fires of the same type.
 
 ### Weight Sensitivity Analysis
 
@@ -195,6 +214,8 @@ Monte Carlo perturbation (±20%) of structural layer weights confirms score stab
 
 ## SHAP Explainability
 
+> **Read this first.** With 226,314 buildings falling into only ~28 ERA5 grid cells, every dynamic-feature SHAP value reflects event-day weather *at the cell level*, not at the building level. Two neighboring buildings inside the same grid cell receive identical wind/VPD/FWI inputs, so SHAP cannot assign differential attribution between them. Treat the plots below as a sanity check on LightGBM's internal logic, not as a causal building-level attribution.
+
 v2 includes SHAP (SHapley Additive exPlanations) via TreeExplainer for the LightGBM model, providing:
 
 - **Global feature importance** — which features drive burned/unburned discrimination across all buildings
@@ -205,7 +226,7 @@ v2 includes SHAP (SHapley Additive exPlanations) via TreeExplainer for the Light
 2. `elevation_m` (0.90) — terrain elevation
 3. `firms_hotspot_count_5km` (0.66) — satellite hotspot density
 
-Note: Fire history features dominate the full-data SHAP model but are excluded from LOEO evaluation due to temporal leakage (see Validation Results). Dynamic features rank lower due to ERA5 9km resolution limiting between-building variability.
+Note: Fire history features dominate the full-data SHAP model but are **excluded from LOEO evaluation** due to temporal leakage (see `docs/leakage_audit.md`). Dynamic features rank lower because the ERA5 9 km grid limits their between-building variability — consistent with the overall v2 negative finding described in [v2 Architecture](#v2-architecture--a-methodological-experiment).
 
 <p align="center">
   <img src="outputs/validation/shap_importance.png" alt="SHAP Feature Importance" width="48%">
@@ -245,7 +266,7 @@ wildfire-risk-eu/
 │   ├── outputs/       # Stage 6: deliverable generation
 │   ├── qc/            # Quality control checks
 │   └── utils/         # Shared config loader + DuckDB schema
-├── tests/             # pytest test suite (10 files, 214 tests)
+├── tests/             # pytest test suite (9 files, 214 tests)
 ├── data/
 │   ├── raw/           # Downloaded raw data (gitignored)
 │   ├── processed/     # Processed intermediates (gitignored)
@@ -279,13 +300,15 @@ wildfire-risk-eu/
 
 ## Limitations
 
-- **Fire-type specialization** — v1 structural layer excels on terrain-driven fires but fails on wind/suburban events; v2 dynamic layer shows the reverse. Neither layer generalizes across all fire types without fire-type-aware model selection
-- **Proxy perimeters** — all 4 events use circular literature-proxy perimeters, not actual fire boundaries (EMS fallback in config is documentation-only, not implemented)
-- **ERA5 resolution** — ~9km grid; buildings in the same cell receive identical dynamic feature values
-- **Fire history leakage** — fire history features include post-event data and are excluded from LOEO to mitigate leakage; full per-event temporal cutoff deferred to v3 (see [docs/leakage_audit.md](docs/leakage_audit.md))
-- **4-event LOEO** — minimally viable for cross-validation; expanding to 6+ events requires AOI extension
-- **CORINE 2018 vintage** — post-2018 land use changes not captured
-- **AOI limited to Attica region** — generalization to other Mediterranean WUI zones not tested
+- **Sample size (n = 4 events)** — *"LOEO with 4 events is minimally viable but not statistically powerful"* (from `outputs/reports/validation_report.md`). With 4 observations, any per-event AUC is a single reading, the in-distribution vs out-of-distribution partition is inevitably post-hoc, and no comparison of means survives a statistical-significance test. Expanding to 6+ events requires AOI extension beyond Attica and is a v3 priority. **This limitation should be read as dominating all others below.**
+- **ERA5 resolution** — ~9 km grid; 226,314 buildings fall into ~28 cells. The v2 dynamic features therefore have no sub-cell variability and in a cross-event LOEO setting collapse to encoding event identity. This is the structural reason v2 mean AUC ≈ 0.508.
+- **Fire weather climatology cutoffs not enforced** — `config/validation.yaml` defines `fwi_cutoff` and `fire_history_cutoff` per event, but `src/features/fire_weather.py` does not apply them. `fwi_season_max` in particular is *not* diluted by averaging — a single event-day extreme enters the feature at full strength — so its leakage pathway is stronger than the mean-based climatology features. Full temporal cutoff enforcement is deferred to v3. See [`docs/leakage_audit.md`](docs/leakage_audit.md).
+- **Fire history leakage** — fire history features include post-event data and are *excluded* from LOEO; full per-event temporal cutoff is deferred to v3.
+- **Proxy perimeters** — all 4 events use circular literature-proxy perimeters (area-equivalent radius from EFFIS annual reports), not actual fire boundaries. The `fallback_source` entries in config (EMSR300, EMSR531) are documentation-only and not wired into the validator.
+- **Fire-type description, not boundary** — v1 scored higher on Kalamos and Varybobi; v2 scored higher on Mati and Acharnes. With n=1 per (layer × fire-type) cell, this is a description of 4 events, not a validated "applicability boundary."
+- **Risk classes are quintile bins** — `src/scoring/engine.py` uses `pd.qcut(q=5)`, so each class contains exactly 20% of the portfolio by construction. "Very High" denotes rank within this sample, not an absolute probability of loss. At Acharnes the per-class burn rates are inverted (Class 5: 2.2% vs Class 2: 3.9%).
+- **CORINE 2018 vintage** — post-2018 land-use changes not captured.
+- **AOI limited to Attica WUI subset** — generalization to other Mediterranean WUI zones is untested.
 
 ---
 
@@ -300,4 +323,4 @@ wildfire-risk-eu/
 
 ---
 
-*WildfireRisk-EU v2.2.0 | MIT License*
+*WildfireRisk-EU v2.2.0 | MIT License | [CHANGELOG](CHANGELOG.md)*

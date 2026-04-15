@@ -54,7 +54,7 @@ v2 pipeline for temporal information leakage relative to LOEO validation events
 |---|---------|-------|---------------|------|-------------|-----------|
 | 12 | `fwi_season_mean` | Fire Weather | Climatology 2015-2024 | Yes | Low | Multi-year seasonal average includes post-event years, but individual event-year FWI is diluted across 10 years of fire seasons; no event-specific signal leaks through |
 | 13 | `fwi_season_p90` | Fire Weather | Climatology 2015-2024 | Yes | Low | 90th percentile across 10 fire seasons; dominated by extreme years regardless of which event is tested |
-| 14 | `fwi_season_max` | Fire Weather | Climatology 2015-2024 | Yes | Low | Single-day maximum across all seasons; may include the actual event day's FWI, but one day out of ~1,530 fire-season days is negligible |
+| 14 | `fwi_season_max` | Fire Weather | Climatology 2015-2024 | Yes | **Medium** | Single-day maximum across 10 fire seasons. **Max aggregation is not diluted** — a single event-day extreme enters the feature at full strength. The "one day out of ~1,530 fire-season days is negligible" dilution argument applies to mean / count features but **not to max**. Reclassified from Low to Medium until per-event `fwi_cutoff` is enforced in `src/features/fire_weather.py`. |
 | 15 | `dc_season_mean` | Fire Weather | Climatology 2015-2024 | Yes | Low | Drought Code seasonal average; same dilution logic as fwi_season_mean |
 | 16 | `fwi_extreme_days` | Fire Weather | Climatology 2015-2024 | Yes | Low | Count of days with FWI > 30 per season, averaged; event day contributes at most 1 day out of ~150+ extreme days across 10 years |
 
@@ -84,10 +84,18 @@ v2 pipeline for temporal information leakage relative to LOEO validation events
 
 | Risk Level | Count | Features |
 |-----------|-------|----------|
-| **None** | 12 | All terrain (5), wui_class, all dynamic (5), wui_class |
-| **Low** | 9 | 5 vegetation (excl. wui_class), 5 fire weather climatology |
-| **Medium** | 1 | firms_hotspot_count_5km |
-| **High** | 4 | dist_to_nearest_fire_m, fire_count_5km, fire_count_10km, recency_score |
+| **None** | 12 | All terrain (5), wui_class, all dynamic (5) |
+| **Low** | 8 | 5 vegetation (excl. wui_class), `fwi_season_mean`, `fwi_season_p90`, `dc_season_mean`, `fwi_extreme_days` |
+| **Medium** | 2 | `firms_hotspot_count_5km`, `fwi_season_max` |
+| **High** | 4 | `dist_to_nearest_fire_m`, `fire_count_5km`, `fire_count_10km`, `recency_score` |
+
+Total: 12 + 8 + 2 + 4 = 26 features.
+
+Note: in the previous revision the Low row listed "5 fire weather climatology" and
+the Medium row listed only `firms_hotspot_count_5km`. `fwi_season_max` has been
+moved from Low → Medium (see rationale under feature #14) because *max* aggregation
+bypasses the dilution argument that applies to `fwi_season_mean`, `fwi_season_p90`,
+`dc_season_mean`, and `fwi_extreme_days`.
 
 ## Mitigation Status
 
@@ -96,10 +104,16 @@ v2 pipeline for temporal information leakage relative to LOEO validation events
    to 21 features. This prevents the LightGBM model from learning to predict
    burned labels using features that encode the test event.
 
-2. **Fire weather climatology accepted as Low risk**: The 10-year seasonal
-   averaging dilutes any single event's contribution. The config defines
-   `fire_history_cutoff` and `fwi_cutoff` dates per event, but these are
-   **not yet enforced** in the feature computation code.
+2. **Fire weather climatology — split rating**: mean / p90 / count-type features
+   (`fwi_season_mean`, `fwi_season_p90`, `dc_season_mean`, `fwi_extreme_days`) are
+   classified **Low** because 10-year seasonal averaging dilutes any single
+   event's contribution. `fwi_season_max` is classified **Medium** because max
+   aggregation bypasses the dilution argument — a single event-day extreme enters
+   the feature at full strength. The config defines `fire_history_cutoff` and
+   `fwi_cutoff` dates per event in `config/validation.yaml`, but these are **not
+   enforced** in either `src/features/fire_history.py` or
+   `src/features/fire_weather.py`. This is an open mitigation item; full
+   per-event temporal cutoff is deferred to v3.
 
 3. **CORINE 2018 vintage accepted as Low risk**: The single-snapshot nature
    means any post-event land cover changes work against the model (burned areas
